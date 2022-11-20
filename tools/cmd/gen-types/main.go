@@ -31,6 +31,7 @@ var flags struct {
 	FilePerType            bool
 	ExpandEmbedded         bool
 	LongUnionDiscriminator bool
+	Header                 string
 }
 
 func main() {
@@ -47,6 +48,7 @@ func main() {
 	cmd.Flags().StringSliceVar(&flags.Reference, "reference", nil, "Extra type definition files to use as a reference")
 	cmd.Flags().BoolVar(&flags.FilePerType, "file-per-type", false, "Generate a separate file for each type")
 	cmd.Flags().BoolVar(&flags.LongUnionDiscriminator, "long-union-discriminator", false, "Use the full name of the union type for the discriminator method")
+	cmd.Flags().StringVar(&flags.Header, "header", "", "Add a header to each file")
 	flags.files.SetFlags(cmd.Flags(), "types")
 
 	_ = cmd.Execute()
@@ -114,6 +116,7 @@ func run(_ *cobra.Command, args []string) {
 
 	if !flags.FilePerType {
 		w := new(bytes.Buffer)
+		w.WriteString(flags.Header)
 		check(Templates.Execute(w, flags.Language, ttypes))
 		check(typegen.WriteFile(flags.Out, w))
 	} else {
@@ -123,6 +126,7 @@ func run(_ *cobra.Command, args []string) {
 		w := new(bytes.Buffer)
 		for _, typ := range ttypes.Types {
 			w.Reset()
+			w.WriteString(flags.Header)
 			err := fileTmpl.Execute(w, typ)
 			check(err)
 			filename := SafeClassName(w.String())
@@ -137,6 +141,7 @@ func run(_ *cobra.Command, args []string) {
 		}
 		for _, typ := range ttypes.Unions {
 			w.Reset()
+			w.WriteString(flags.Header)
 			err := fileTmpl.Execute(w, typ)
 			check(err)
 			filename := w.String()
