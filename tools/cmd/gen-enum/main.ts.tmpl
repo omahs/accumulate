@@ -12,6 +12,13 @@ export enum {{.Name}} {
 }
 
 export namespace {{.Name}} {
+  export type Args = {{.Name}} | string;
+
+  export function fromObject(obj: Args): {{.Name}} {
+    if (typeof obj === 'number') return obj
+    return byName(obj)
+  }
+
   export function byName(name: string): {{.Name}} {
     switch (name) {
       {{- $typ := .Name}}

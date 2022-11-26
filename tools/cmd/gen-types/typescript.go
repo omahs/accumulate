@@ -53,10 +53,8 @@ func TsInputType(field *Field) string {
 	switch field.MarshalAs {
 	case Reference, Value:
 		typ = field.Type.Name + " | " + field.Type.Name + ".Args"
-	case Union:
+	case Union, Enum:
 		typ = field.Type.Name + ".Args"
-	case Enum:
-		typ = field.Type.Name + " | string"
 	}
 	if field.Repeatable {
 		typ = "(" + typ + ")[]"
@@ -101,10 +99,8 @@ func tsUnobjectify2(field *Field, varName string) string {
 	switch field.MarshalAs {
 	case Reference, Value:
 		return fmt.Sprintf("%s instanceof %s ? %[1]s : new %[2]s(%[1]s)", varName, field.Type.Name)
-	case Union:
+	case Enum, Union:
 		return fmt.Sprintf("%s.fromObject(%s)", field.Type.Name, varName)
-	case Enum:
-		return fmt.Sprintf("typeof %s === 'number' ? %[1]s : %s.byName(%[1]s)", varName, field.Type.Name)
 	}
 
 	return varName
