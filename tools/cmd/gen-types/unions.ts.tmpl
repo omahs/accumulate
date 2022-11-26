@@ -21,8 +21,6 @@ export namespace {{.Interface}} {
   export function fromObject(obj: Args): {{.Interface}}
   {{- range .Members}}
   export function fromObject(obj: types.{{.FullName false true}}): types.{{.FullName false true}}
-  {{- end}}
-  {{- range .Members}}
   export function fromObject(obj: types.{{.FullName false true}}.ArgsWithType): types.{{.FullName false true}}
   {{- end}}
   export function fromObject(obj) {
