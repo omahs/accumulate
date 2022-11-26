@@ -18,12 +18,7 @@ export namespace {{.Interface}} {
     | types.{{.FullName false true}} | types.{{.FullName false true}}.ArgsWithType
   {{- end}};
 
-  export function fromObject(obj: Args): {{.Interface}}
-  {{- range .Members}}
-  export function fromObject(obj: types.{{.FullName false true}}): types.{{.FullName false true}}
-  export function fromObject(obj: types.{{.FullName false true}}.ArgsWithType): types.{{.FullName false true}}
-  {{- end}}
-  export function fromObject(obj) {
+  export function fromObject(obj: Args): {{.Interface}} {
     {{- range .Members}}
     if (obj instanceof types.{{.FullName false true}}) return obj
     {{- end}}
