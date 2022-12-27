@@ -30,6 +30,7 @@ type Node struct {
 	NodeKey [32]byte
 	Hash    [32]byte
 
+	key    record.Key
 	status nodeStatus
 	bpt    *BPT
 	Parent *Node
@@ -76,27 +77,25 @@ func readNode(parent *Node, rd io.Reader) (*Node, error) {
 	return n, nil
 }
 
-func copyNodeWithParent(n, parent *Node) *Node {
+func (n *Node) withParent(parent *Node, recursive bool) Entry {
 	m := newNode(nil, parent)
 	m.status = nodeDirty
 	m.Height = n.Height
 	m.NodeKey = n.NodeKey
 	m.Hash = n.Hash
-	m.Left = n.Left.withParent(m)
-	m.Right = n.Right.withParent(m)
+	if recursive {
+		m.Left = n.Left.withParent(m, true)
+		m.Right = n.Right.withParent(m, true)
+	} else {
+		m.Left = new(NotLoaded)
+		m.Right = new(NotLoaded)
+	}
 	m.register()
 	return m
 }
 
 func (n *Node) register() {
-	if n.Height&n.bpt.mask != 0 {
-		return
-	}
-
-	if n.bpt.node == nil {
-		n.bpt.node = map[bptnodeKey]*Node{}
-	}
-	n.bpt.node[keyForBPTNode(n.NodeKey)] = n
+	n.key = n.bpt.key.Append(n.NodeKey)
 }
 
 func (*Node) Type() EntryType { return EntryTypeNode }
@@ -197,14 +196,10 @@ func (n *Node) load() error {
 		return nil
 	}
 
-	if n.Height&n.bpt.mask != 0 { // Throw an error if not a border node
-		return errors.InternalError.With("load should not be called on a node that is not a border node")
-	}
-
 	err := n.bpt.store.GetValue(n.bpt.key.Append(n.NodeKey), nodeValue{n})
 	switch {
 	case err == nil:
-		n.bpt.node[bptnodeKey{n.NodeKey}] = n
+		// Ok
 	case errors.Is(err, errors.NotFound):
 		n.Left = &NilEntry{parent: n}
 		n.Right = &NilEntry{parent: n}
@@ -250,36 +245,40 @@ func (n *Node) GetHash() []byte {
 	return n.Hash[:]
 }
 
-func (n *Node) markClean(first bool) {
-	n.status = nodeClean
-	if !first && n.Height&n.bpt.mask == 0 {
-		return
-	}
-	if m, ok := n.Left.(*Node); ok {
-		m.markClean(false)
-	}
-	if m, ok := n.Right.(*Node); ok {
-		m.markClean(false)
-	}
-}
-
 func (n *Node) IsDirty() bool { return n.status != nodeClean }
 
 func (n *Node) Commit() error {
 	if n == nil || !n.IsDirty() {
 		return nil
 	}
-	if n.Height&n.bpt.mask != 0 {
-		return errors.InternalError.With("invalid attempt to commit non-border node")
+
+	// Ensure hashes are up to date
+	n.GetHash()
+
+	// Write
+	if n.Height&n.bpt.mask == 0 {
+		err := n.bpt.store.PutValue(n.key, nodeValue{n})
+		if err != nil {
+			return errors.UnknownError.Wrap(err)
+		}
 	}
 
-	// Write block
-	err := n.bpt.store.PutValue(n.bpt.key.Append(n.NodeKey), nodeValue{n})
-	if err != nil {
-		return errors.UnknownError.Wrap(err)
+	// Commit children
+	if m, ok := n.Left.(*Node); ok {
+		err := m.Commit()
+		if err != nil {
+			return errors.UnknownError.Wrap(err)
+		}
+	}
+	if m, ok := n.Right.(*Node); ok {
+		err := m.Commit()
+		if err != nil {
+			return errors.UnknownError.Wrap(err)
+		}
 	}
 
-	n.markClean(true)
+	// Mark clean
+	n.status = nodeClean
 	return nil
 }
 
@@ -300,7 +299,19 @@ func (n nodeValue) LoadValue(value record.ValueReader, put bool) error {
 	}
 
 	if put {
+		// This scenario occurs when changes from a child batch are committed
+		// into a parent batch.
+		//
+		//   1. Insert the modified child tree into the parent tree.
 		_, err := n.insert(src.Node)
+		if err != nil {
+			return errors.UnknownError.Wrap(err)
+		}
+
+		//   2. Reload the child from the parent.
+		src.Hash = *(*[32]byte)(n.GetHash())
+		src.Left = new(NotLoaded)
+		src.Right = new(NotLoaded)
 		return err
 	}
 
@@ -312,33 +323,11 @@ func (n nodeValue) LoadValue(value record.ValueReader, put bool) error {
 
 	// Force hashes to update
 	src.GetHash()
-	n.loadFrom(src.Node, true)
+
+	// Copy the source's left and right
+	n.Left = src.Left.withParent(n.Node, false)
+	n.Right = src.Right.withParent(n.Node, false)
 	return nil
-}
-
-func (n *Node) loadFrom(m *Node, first bool) *Node {
-	n.Height = m.Height
-	n.NodeKey = m.NodeKey
-	n.Hash = m.Hash
-
-	// Stop on block boundary
-	if !first && n.Height&n.bpt.mask == 0 {
-		n.Left = new(NotLoaded)
-		n.Right = new(NotLoaded)
-		return n
-	}
-
-	if o, ok := m.Left.(*Node); ok {
-		n.Left = newNode(nil, n).loadFrom(o, false)
-	} else {
-		n.Left = m.Left.withParent(n)
-	}
-	if o, ok := m.Right.(*Node); ok {
-		n.Right = newNode(nil, n).loadFrom(o, false)
-	} else {
-		n.Right = m.Right.withParent(n)
-	}
-	return n
 }
 
 func (n nodeValue) MarshalBinary() ([]byte, error) {
@@ -356,6 +345,5 @@ func (n nodeValue) UnmarshalBinaryFrom(rd io.Reader) error {
 	if n.Height&n.bpt.mask != 0 {
 		return errors.InternalError.With("invalid attempt to load non-border node")
 	}
-
 	return n.unmarshalChildren(rd)
 }

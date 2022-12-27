@@ -21,7 +21,7 @@ type Entry interface {
 	// Equal(entry Entry) bool // Return Entry == entry
 
 	insert(m Entry) (Entry, error)
-	withParent(n *Node) Entry
+	withParent(n *Node, recursive bool) Entry
 }
 
 func (v *Value) GetHash() []byte   { return v.Hash[:] }
@@ -71,25 +71,21 @@ func (*NotLoaded) insert(m Entry) (Entry, error) {
 	panic("cannot insert - not loaded")
 }
 
-func (n *NotLoaded) withParent(*Node) Entry {
+func (n *NotLoaded) withParent(*Node, bool) Entry {
 	return n
 }
 
-func (*NilEntry) withParent(n *Node) Entry {
+func (*NilEntry) withParent(n *Node, recursive bool) Entry {
 	return &NilEntry{parent: n}
 }
 
-func (v *Value) withParent(n *Node) Entry {
+func (v *Value) withParent(n *Node, recursive bool) Entry {
 	return &Value{parent: n, Key: v.Key, Hash: v.Hash}
-}
-
-func (n *Node) withParent(parent *Node) Entry {
-	return copyNodeWithParent(n, parent)
 }
 
 func (e *NilEntry) insert(m Entry) (Entry, error) {
 	// Replace the nil entry
-	return m.withParent(e.parent), nil
+	return m.withParent(e.parent, true), nil
 }
 
 func (v *Value) insert(m Entry) (Entry, error) {

@@ -16,7 +16,7 @@ const defaultNodeCnt = 1000
 func TestBasic(t *testing.T) {
 	cs := &ChangeSet{store: record.KvStore{Store: memory.New(nil).Begin(true)}}
 
-	LoadBptCnt(cs.BPT(), 1, 100000)
+	LoadBptCnt(cs.BPT(), 1, 1000)
 
 	sub := cs.Begin(true)
 	require.NoError(t, sub.BPT().Insert(sha256.Sum256([]byte{1}), [32]byte{3}))
@@ -66,8 +66,8 @@ func LoadBptCnt(bpt *BPT, seed int64, NodeCnt int64) {
 // Load up a new BPT with an assumed number of entries
 func LoadBpt() *BPT { //                                                LoadBpt builds and returns a standard BPT
 	db := memory.New(nil).Begin(true)
-	bpt := bpt2.New(nil, record.KvStore{db}, record.Key{"BPT"}, 3, "bpt") //                            Build a BPT
-	LoadBptCnt(bpt, 0, defaultNodeCnt)                                    //                             Every call returns the same BPT configuration
+	bpt := bpt2.New(nil, record.KvStore{Store: db}, record.Key{"BPT"}, 3, "bpt") //                            Build a BPT
+	LoadBptCnt(bpt, 0, defaultNodeCnt)                                           //                             Every call returns the same BPT configuration
 	return bpt
 }
 

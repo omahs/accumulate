@@ -23,16 +23,8 @@ type BPT struct {
 	power  uint64
 	mask   uint64
 
-	state record.Value[*RootState]
-	node  map[bptnodeKey]*Node
-}
-
-type bptnodeKey struct {
-	K [32]byte
-}
-
-func keyForBPTNode(k [32]byte) bptnodeKey {
-	return bptnodeKey{k}
+	state    record.Value[*RootState]
+	rootNode *Node
 }
 
 func (c *BPT) getState() record.Value[*RootState] {
@@ -49,10 +41,8 @@ func (c *BPT) IsDirty() bool {
 	if fieldIsDirty(c.state) {
 		return true
 	}
-	for _, v := range c.node {
-		if v.IsDirty() {
-			return true
-		}
+	if fieldIsDirty(c.rootNode) {
+		return true
 	}
 
 	return false
@@ -65,9 +55,7 @@ func (c *BPT) baseCommit() error {
 
 	var err error
 	commitField(&err, c.state)
-	for _, v := range c.node {
-		commitField(&err, v)
-	}
+	commitField(&err, c.rootNode)
 
 	return err
 }

@@ -1,8 +1,6 @@
 package bpt2
 
 import (
-	"sort"
-
 	"github.com/tendermint/tendermint/libs/log"
 	"gitlab.com/accumulatenetwork/accumulate/internal/database/record"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/errors"
@@ -25,11 +23,11 @@ func (b *BPT) Insert(key, hash [32]byte) error {
 }
 
 func (b *BPT) getRoot() *Node {
-	k, _ := nodeKeyAt(0, [32]byte{})
-	if n, ok := b.node[bptnodeKey{k}]; ok {
-		return n
+	if b.rootNode != nil {
+		return b.rootNode
 	}
-	return newRootNode(b)
+	b.rootNode = newRootNode(b)
+	return b.rootNode
 }
 
 func (b *BPT) GetHash() ([]byte, error) {
@@ -66,45 +64,13 @@ func (b *BPT) Resolve(key record.Key) (record.Record, record.Key, error) {
 }
 
 func (b *BPT) Commit() error {
-	// Update hashes
-	b.getRoot().GetHash()
-
-	// Until all nodes are clean
-	for {
-		// Get a list of all dirty nodes
-		var dirty []*Node
-		for _, n := range b.node {
-			if n.IsDirty() {
-				dirty = append(dirty, n)
-			}
-		}
-		if len(dirty) == 0 {
-			break
-		}
-
-		// Order by height
-		sort.Slice(dirty, func(i, j int) bool {
-			return dirty[i].Height > dirty[j].Height
-		})
-
-		// Commit only nodes at the highest level
-		h := dirty[0].Height
-		for _, n := range dirty {
-			if n.Height < h {
-				break
-			}
-			err := n.Commit()
-			if err != nil {
-				return errors.UnknownError.Wrap(err)
-			}
-		}
-	}
-
 	// Set the root hash (so we don't have to load Root)
 	s, err := b.getState().Get()
 	if err != nil {
 		return errors.UnknownError.WithFormat("load state: %w", err)
 	}
+
+	// Calling GetHash ensures that any out of sync hashes are recalculated
 	s.RootHash = *(*[32]byte)(b.getRoot().GetHash())
 	s.Power = b.power
 	s.Mask = b.mask

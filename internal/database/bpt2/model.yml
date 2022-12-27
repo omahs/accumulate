@@ -15,12 +15,8 @@
     emptyIfMissing: true
     dataType: RootState
     pointer: true
-  - name: Node
+  - name: RootNode
     type: other
     dataType: Node
-    omitKey: true
     private: true
     omitAccessor: true
-    parameters:
-    - name: K
-      type: hash
