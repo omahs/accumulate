@@ -247,6 +247,17 @@ func (n *Node) GetHash() []byte {
 
 func (n *Node) IsDirty() bool { return n.status != nodeClean }
 
+// Commit updates hashes and commits modifications to the underlying store. The
+// node may be reused after committing. The exact behavior depends on the nature
+// of the store.
+//
+// When writing to a key-value store, the guard around PutValue ensures only
+// blocks are written, and the recursive Commit calls ensure all blocks are
+// written.
+//
+// When writing to a parent batch, the entire tree is written out in a single
+// PutValue call. The logic of [nodeValue.LoadValue] stops Commit from
+// recursing.
 func (n *Node) Commit() error {
 	if n == nil || !n.IsDirty() {
 		return nil
@@ -307,7 +318,7 @@ func (n nodeValue) LoadValue(value record.ValueReader, put bool) error {
 			return errors.UnknownError.Wrap(err)
 		}
 
-		//   2. Reload the child from the parent.
+		//   2. Reload the child from the parent and prevent Commit from recursing.
 		src.Hash = *(*[32]byte)(n.GetHash())
 		src.Left = new(NotLoaded)
 		src.Right = new(NotLoaded)
