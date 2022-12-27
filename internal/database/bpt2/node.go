@@ -299,8 +299,7 @@ func (n nodeValue) LoadValue(value record.ValueReader, put bool) error {
 	}
 
 	if put {
-		// This scenario occurs when changes from a child batch are committed
-		// into a parent batch.
+		// Committing changes from a child batch into a parent batch.
 		//
 		//   1. Insert the modified child tree into the parent tree.
 		_, err := n.insert(src.Node)
