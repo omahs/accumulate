@@ -13,3 +13,13 @@ type ExecutorVersion uint64
 func (v ExecutorVersion) SignatureAnchoringEnabled() bool {
 	return v >= ExecutorVersionV1SignatureAnchoring
 }
+
+// HaltV1 checks if the version is at least V1 halt.
+func (v ExecutorVersion) HaltV1() bool {
+	return v >= ExecutorVersionV1Halt
+}
+
+// V2 checks if the version is at least V2.
+func (v ExecutorVersion) V2() bool {
+	return v >= ExecutorVersionV2
+}
