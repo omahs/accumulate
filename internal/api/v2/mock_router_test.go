@@ -10,8 +10,8 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	routing "gitlab.com/accumulatenetwork/accumulate/internal/api/routing"
+	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
 	url "gitlab.com/accumulatenetwork/accumulate/pkg/url"
-	protocol "gitlab.com/accumulatenetwork/accumulate/protocol"
 )
 
 // MockRouter is a mock of Router interface.
@@ -52,7 +52,7 @@ func (mr *MockRouterMockRecorder) RequestAPIv2(ctx, partitionId, method, params,
 }
 
 // Route mocks base method.
-func (m *MockRouter) Route(arg0 ...*protocol.Envelope) (string, error) {
+func (m *MockRouter) Route(arg0 ...*messaging.Envelope) (string, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{}
 	for _, a := range arg0 {
@@ -86,7 +86,7 @@ func (mr *MockRouterMockRecorder) RouteAccount(arg0 interface{}) *gomock.Call {
 }
 
 // Submit mocks base method.
-func (m *MockRouter) Submit(ctx context.Context, partition string, tx *protocol.Envelope, pretend, async bool) (*routing.ResponseSubmit, error) {
+func (m *MockRouter) Submit(ctx context.Context, partition string, tx *messaging.Envelope, pretend, async bool) (*routing.ResponseSubmit, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Submit", ctx, partition, tx, pretend, async)
 	ret0, _ := ret[0].(*routing.ResponseSubmit)

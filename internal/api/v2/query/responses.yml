@@ -71,7 +71,7 @@ ResponseByTxId:
       type: txid
       pointer: true
     - name: Envelope
-      type: protocol.Envelope
+      type: messaging.Envelope
       marshal-as: reference
       pointer: true
     - name: Status

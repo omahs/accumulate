@@ -1,4 +1,4 @@
-// Copyright 2022 The Accumulate Authors
+// Copyright 2023 The Accumulate Authors
 //
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file or at
@@ -15,6 +15,7 @@ import (
 	"fmt"
 
 	"gitlab.com/accumulatenetwork/accumulate/pkg/client/signing"
+	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
 	"gitlab.com/accumulatenetwork/accumulate/protocol"
 )
 
@@ -84,7 +85,7 @@ func constructFaucetTxn(req *protocol.AcmeFaucet) (*TxRequest, []byte, error) {
 	txn := new(protocol.Transaction)
 	txn.Header.Principal = protocol.FaucetUrl
 	txn.Body = req
-	env := new(protocol.Envelope)
+	env := new(messaging.Envelope)
 	env.Transaction = []*protocol.Transaction{txn}
 	sig, err := new(signing.Builder).
 		UseFaucet().
@@ -214,7 +215,7 @@ func (m *JrpcMethods) ExecuteLocal(ctx context.Context, params json.RawMessage) 
 	return m.submit(ctx, m.Options.Describe.PartitionId, req.Envelope, req.CheckOnly)
 }
 
-func (m *JrpcMethods) submit(ctx context.Context, partition string, env *protocol.Envelope, checkOnly bool) interface{} {
+func (m *JrpcMethods) submit(ctx context.Context, partition string, env *messaging.Envelope, checkOnly bool) interface{} {
 	// Marshal the envelope
 	txData, err := env.MarshalBinary()
 	if err != nil {
@@ -272,9 +273,9 @@ func (m *JrpcMethods) submit(ctx context.Context, partition string, env *protoco
 	}
 }
 
-func processExecuteRequest(req *TxRequest, payload []byte) (*protocol.Envelope, error) {
+func processExecuteRequest(req *TxRequest, payload []byte) (*messaging.Envelope, error) {
 	if req.IsEnvelope {
-		env := new(protocol.Envelope)
+		env := new(messaging.Envelope)
 		err := env.UnmarshalBinary(payload)
 		return env, err
 	}
@@ -290,7 +291,7 @@ func processExecuteRequest(req *TxRequest, payload []byte) (*protocol.Envelope, 
 	txn.Header.Principal = req.Origin
 	txn.Header.Memo = req.Memo
 	txn.Header.Metadata = req.Metadata
-	env := new(protocol.Envelope)
+	env := new(messaging.Envelope)
 	env.TxHash = req.TxHash
 	env.Transaction = append(env.Transaction, txn)
 	if remote, ok := body.(*protocol.RemoteTransaction); ok && len(remote.Hash) == 0 {

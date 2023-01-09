@@ -1,4 +1,4 @@
-// Copyright 2022 The Accumulate Authors
+// Copyright 2023 The Accumulate Authors
 //
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file or at
@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"gitlab.com/accumulatenetwork/accumulate/internal/api/v2/query"
+	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
 	"gitlab.com/accumulatenetwork/accumulate/protocol"
 )
 
@@ -34,7 +35,7 @@ func packStateResponse(account protocol.Account, chains []query.ChainState, rece
 	return res, nil
 }
 
-func packTxResponse(qrResp *query.ResponseByTxId, ms *MerkleState, envelope *protocol.Envelope, status *protocol.TransactionStatus) (*TransactionQueryResponse, error) {
+func packTxResponse(qrResp *query.ResponseByTxId, ms *MerkleState, envelope *messaging.Envelope, status *protocol.TransactionStatus) (*TransactionQueryResponse, error) {
 	res := new(TransactionQueryResponse)
 	res.Type = envelope.Transaction[0].Body.Type().String()
 	res.Data = envelope.Transaction[0].Body

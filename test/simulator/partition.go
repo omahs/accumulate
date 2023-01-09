@@ -43,7 +43,7 @@ type Partition struct {
 	routerSubmitHook RouterSubmitHookFunc
 }
 
-type SubmitHookFunc func(messaging.Message) (dropTx, keepHook bool)
+type SubmitHookFunc func([]messaging.Message) (drop, keepHook bool)
 type RouterSubmitHookFunc func([]messaging.Message) (_ []messaging.Message, keepHook bool)
 
 type validatorUpdate struct {
@@ -152,48 +152,65 @@ func (p *Partition) initChain(snapshot ioutil2.SectionReader) error {
 	return nil
 }
 
-func (p *Partition) Submit(message messaging.Message, pretend bool) (*protocol.TransactionStatus, error) {
+func (p *Partition) Submit(messages []messaging.Message, pretend bool) ([]*protocol.TransactionStatus, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	if p.submitHook != nil {
-		drop, keep := p.submitHook(message)
+		drop, keep := p.submitHook(messages)
 		if !keep {
 			p.submitHook = nil
 		}
 		if drop {
-			s := new(protocol.TransactionStatus)
-			s.TxID = message.(*messaging.LegacyMessage).Transaction.ID()
-			return s, nil
+			st := make([]*protocol.TransactionStatus, len(messages))
+			for i, msg := range messages {
+				st[i] = new(protocol.TransactionStatus)
+				st[i].TxID = msg.ID()
+				st[i].Code = errors.NotAllowed
+				st[i].Error = errors.NotAllowed.With("dropped")
+			}
+			return st, nil
 		}
 	}
 
-	var err error
-	result := make([]*protocol.TransactionStatus, len(p.nodes))
+	// var err error
+	results := make([][]*protocol.TransactionStatus, len(p.nodes))
 	for i, node := range p.nodes {
-		// Make a copy to prevent changes
-		result[i], err = node.checkTx(messaging.CopyMessage(message), types.CheckTxType_New)
+		var err error
+		results[i], err = node.checkTx(messages, types.CheckTxType_New)
 		if err != nil {
 			return nil, errors.FatalError.Wrap(err)
 		}
 	}
-	for _, r := range result[1:] {
-		if !result[0].Equal(r) {
-			message := message.(*messaging.LegacyMessage)
-			return nil, errors.FatalError.WithFormat("consensus failure: check tx: transaction %x (%v)", message.Transaction.GetHash()[:4], message.Transaction.Body.Type())
+
+	for _, r := range results[1:] {
+		if len(r) != len(results[0]) {
+			return nil, errors.FatalError.WithFormat("consensus failure: different number of results")
+		}
+		for i, st := range r {
+			if !results[0][i].Equal(st) {
+				return nil, errors.FatalError.WithFormat("consensus failure: deliver message %v", st.TxID)
+			}
 		}
 	}
 
-	if !pretend && result[0].Code.Success() {
-		p.mempool = append(p.mempool, message)
+	ok := true
+	for _, st := range results[0] {
+		if st.Failed() {
+			ok = false
+		}
 	}
-	return result[0], nil
+
+	if !pretend && ok {
+		p.mempool = append(p.mempool, messages...)
+	}
+	return results[0], nil
 }
 
 func (p *Partition) execute() error {
 	// TODO: Limit how many transactions are added to the block? Call recheck?
 	p.mu.Lock()
-	deliveries := p.deliver
+	messages := p.deliver
 	p.deliver = p.mempool
 	p.mempool = nil
 	p.mu.Unlock()
@@ -242,19 +259,20 @@ func (p *Partition) execute() error {
 
 	// Deliver Tx
 	var err error
-	results := make([]*protocol.TransactionStatus, len(p.nodes))
-	for _, message := range deliveries {
-		for i, node := range p.nodes {
-			// Make a copy to prevent changes
-			results[i], err = node.deliverTx(blocks[i], messaging.CopyMessage(message))
-			if err != nil {
-				return errors.FatalError.WithFormat("execute: %w", err)
-			}
+	results := make([][]*protocol.TransactionStatus, len(p.nodes))
+	for i, node := range p.nodes {
+		results[i], err = node.deliverTx(blocks[i], messages)
+		if err != nil {
+			return errors.FatalError.WithFormat("execute: %w", err)
 		}
-		for _, r := range results[1:] {
-			if !results[0].Equal(r) {
-				message := message.(*messaging.LegacyMessage)
-				return errors.FatalError.WithFormat("consensus failure: deliver tx: transaction %x (%v)", message.Transaction.GetHash()[:4], message.Transaction.Body.Type())
+	}
+	for _, r := range results[1:] {
+		if len(r) != len(results[0]) {
+			return errors.FatalError.WithFormat("consensus failure: different number of results")
+		}
+		for i, st := range r {
+			if !results[0][i].Equal(st) {
+				return errors.FatalError.WithFormat("consensus failure: deliver message %v", st.TxID)
 			}
 		}
 	}

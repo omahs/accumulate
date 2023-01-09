@@ -21,9 +21,9 @@ import (
 	"gitlab.com/accumulatenetwork/accumulate/pkg/api/v3"
 	errors2 "gitlab.com/accumulatenetwork/accumulate/pkg/errors"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/encoding"
+	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/p2p"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/url"
-	"gitlab.com/accumulatenetwork/accumulate/protocol"
 )
 
 type Addressed struct {
@@ -123,7 +123,7 @@ type RecordResponse struct {
 
 type SubmitRequest struct {
 	fieldsSet []bool
-	Envelope  *protocol.Envelope `json:"envelope,omitempty" form:"envelope" query:"envelope" validate:"required"`
+	Envelope  *messaging.Envelope `json:"envelope,omitempty" form:"envelope" query:"envelope" validate:"required"`
 	SubmitOptions
 	extraData []byte
 }
@@ -147,7 +147,7 @@ type SubscribeResponse struct {
 
 type ValidateRequest struct {
 	fieldsSet []bool
-	Envelope  *protocol.Envelope `json:"envelope,omitempty" form:"envelope" query:"envelope" validate:"required"`
+	Envelope  *messaging.Envelope `json:"envelope,omitempty" form:"envelope" query:"envelope" validate:"required"`
 	ValidateOptions
 	extraData []byte
 }
@@ -2250,7 +2250,7 @@ func (v *SubmitRequest) UnmarshalBinaryFrom(rd io.Reader) error {
 }
 
 func (v *SubmitRequest) UnmarshalFieldsFrom(reader *encoding.Reader) error {
-	if x := new(protocol.Envelope); reader.ReadValue(2, x.UnmarshalBinaryFrom) {
+	if x := new(messaging.Envelope); reader.ReadValue(2, x.UnmarshalBinaryFrom) {
 		v.Envelope = x
 	}
 	reader.ReadValue(3, v.SubmitOptions.UnmarshalBinaryFrom)
@@ -2390,7 +2390,7 @@ func (v *ValidateRequest) UnmarshalBinaryFrom(rd io.Reader) error {
 }
 
 func (v *ValidateRequest) UnmarshalFieldsFrom(reader *encoding.Reader) error {
-	if x := new(protocol.Envelope); reader.ReadValue(2, x.UnmarshalBinaryFrom) {
+	if x := new(messaging.Envelope); reader.ReadValue(2, x.UnmarshalBinaryFrom) {
 		v.Envelope = x
 	}
 	reader.ReadValue(3, v.ValidateOptions.UnmarshalBinaryFrom)
@@ -2610,10 +2610,10 @@ func (v *RecordResponse) MarshalJSON() ([]byte, error) {
 
 func (v *SubmitRequest) MarshalJSON() ([]byte, error) {
 	u := struct {
-		Type     Type               `json:"type"`
-		Envelope *protocol.Envelope `json:"envelope,omitempty"`
-		Verify   *bool              `json:"verify,omitempty"`
-		Wait     *bool              `json:"wait,omitempty"`
+		Type     Type                `json:"type"`
+		Envelope *messaging.Envelope `json:"envelope,omitempty"`
+		Verify   *bool               `json:"verify,omitempty"`
+		Wait     *bool               `json:"wait,omitempty"`
 	}{}
 	u.Type = v.Type()
 	u.Envelope = v.Envelope
@@ -2654,9 +2654,9 @@ func (v *SubscribeResponse) MarshalJSON() ([]byte, error) {
 
 func (v *ValidateRequest) MarshalJSON() ([]byte, error) {
 	u := struct {
-		Type     Type               `json:"type"`
-		Envelope *protocol.Envelope `json:"envelope,omitempty"`
-		Full     *bool              `json:"full,omitempty"`
+		Type     Type                `json:"type"`
+		Envelope *messaging.Envelope `json:"envelope,omitempty"`
+		Full     *bool               `json:"full,omitempty"`
 	}{}
 	u.Type = v.Type()
 	u.Envelope = v.Envelope
@@ -2956,10 +2956,10 @@ func (v *RecordResponse) UnmarshalJSON(data []byte) error {
 
 func (v *SubmitRequest) UnmarshalJSON(data []byte) error {
 	u := struct {
-		Type     Type               `json:"type"`
-		Envelope *protocol.Envelope `json:"envelope,omitempty"`
-		Verify   *bool              `json:"verify,omitempty"`
-		Wait     *bool              `json:"wait,omitempty"`
+		Type     Type                `json:"type"`
+		Envelope *messaging.Envelope `json:"envelope,omitempty"`
+		Verify   *bool               `json:"verify,omitempty"`
+		Wait     *bool               `json:"wait,omitempty"`
 	}{}
 	u.Type = v.Type()
 	u.Envelope = v.Envelope
@@ -3030,9 +3030,9 @@ func (v *SubscribeResponse) UnmarshalJSON(data []byte) error {
 
 func (v *ValidateRequest) UnmarshalJSON(data []byte) error {
 	u := struct {
-		Type     Type               `json:"type"`
-		Envelope *protocol.Envelope `json:"envelope,omitempty"`
-		Full     *bool              `json:"full,omitempty"`
+		Type     Type                `json:"type"`
+		Envelope *messaging.Envelope `json:"envelope,omitempty"`
+		Full     *bool               `json:"full,omitempty"`
 	}{}
 	u.Type = v.Type()
 	u.Envelope = v.Envelope

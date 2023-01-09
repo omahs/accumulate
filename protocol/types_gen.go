@@ -339,14 +339,6 @@ type EnableAccountAuthOperation struct {
 	extraData []byte
 }
 
-type Envelope struct {
-	fieldsSet   []bool
-	Signatures  []Signature    `json:"signatures,omitempty" form:"signatures" query:"signatures" validate:"required"`
-	TxHash      []byte         `json:"txHash,omitempty" form:"txHash" query:"txHash"`
-	Transaction []*Transaction `json:"transaction,omitempty" form:"transaction" query:"transaction"`
-	extraData   []byte
-}
-
 type FactomDataEntry struct {
 	AccountId [32]byte `json:"accountId,omitempty" form:"accountId" query:"accountId" validate:"required"`
 	Data      []byte   `json:"data,omitempty" form:"data" query:"data" validate:"required"`
@@ -1706,28 +1698,6 @@ func (v *EnableAccountAuthOperation) Copy() *EnableAccountAuthOperation {
 }
 
 func (v *EnableAccountAuthOperation) CopyAsInterface() interface{} { return v.Copy() }
-
-func (v *Envelope) Copy() *Envelope {
-	u := new(Envelope)
-
-	u.Signatures = make([]Signature, len(v.Signatures))
-	for i, v := range v.Signatures {
-		if v != nil {
-			u.Signatures[i] = CopySignature(v)
-		}
-	}
-	u.TxHash = encoding.BytesCopy(v.TxHash)
-	u.Transaction = make([]*Transaction, len(v.Transaction))
-	for i, v := range v.Transaction {
-		if v != nil {
-			u.Transaction[i] = (v).Copy()
-		}
-	}
-
-	return u
-}
-
-func (v *Envelope) CopyAsInterface() interface{} { return v.Copy() }
 
 func (v *FactomDataEntry) Copy() *FactomDataEntry {
 	u := new(FactomDataEntry)
@@ -3532,30 +3502,6 @@ func (v *EnableAccountAuthOperation) Equal(u *EnableAccountAuthOperation) bool {
 		return false
 	case !((v.Authority).Equal(u.Authority)):
 		return false
-	}
-
-	return true
-}
-
-func (v *Envelope) Equal(u *Envelope) bool {
-	if len(v.Signatures) != len(u.Signatures) {
-		return false
-	}
-	for i := range v.Signatures {
-		if !(EqualSignature(v.Signatures[i], u.Signatures[i])) {
-			return false
-		}
-	}
-	if !(bytes.Equal(v.TxHash, u.TxHash)) {
-		return false
-	}
-	if len(v.Transaction) != len(u.Transaction) {
-		return false
-	}
-	for i := range v.Transaction {
-		if !((v.Transaction[i]).Equal(u.Transaction[i])) {
-			return false
-		}
 	}
 
 	return true
@@ -7034,57 +6980,6 @@ func (v *EnableAccountAuthOperation) IsValid() error {
 		errs = append(errs, "field Authority is missing")
 	} else if v.Authority == nil {
 		errs = append(errs, "field Authority is not set")
-	}
-
-	switch len(errs) {
-	case 0:
-		return nil
-	case 1:
-		return errors.New(errs[0])
-	default:
-		return errors.New(strings.Join(errs, "; "))
-	}
-}
-
-var fieldNames_Envelope = []string{
-	1: "Signatures",
-	2: "TxHash",
-	3: "Transaction",
-}
-
-func (v *Envelope) MarshalBinary() ([]byte, error) {
-	buffer := new(bytes.Buffer)
-	writer := encoding.NewWriter(buffer)
-
-	if !(len(v.Signatures) == 0) {
-		for _, v := range v.Signatures {
-			writer.WriteValue(1, v.MarshalBinary)
-		}
-	}
-	if !(len(v.TxHash) == 0) {
-		writer.WriteBytes(2, v.TxHash)
-	}
-	if !(len(v.Transaction) == 0) {
-		for _, v := range v.Transaction {
-			writer.WriteValue(3, v.MarshalBinary)
-		}
-	}
-
-	_, _, err := writer.Reset(fieldNames_Envelope)
-	if err != nil {
-		return nil, encoding.Error{E: err}
-	}
-	buffer.Write(v.extraData)
-	return buffer.Bytes(), nil
-}
-
-func (v *Envelope) IsValid() error {
-	var errs []string
-
-	if len(v.fieldsSet) > 0 && !v.fieldsSet[0] {
-		errs = append(errs, "field Signatures is missing")
-	} else if len(v.Signatures) == 0 {
-		errs = append(errs, "field Signatures is not set")
 	}
 
 	switch len(errs) {
@@ -12702,48 +12597,6 @@ func (v *EnableAccountAuthOperation) UnmarshalFieldsFrom(reader *encoding.Reader
 	return nil
 }
 
-func (v *Envelope) UnmarshalBinary(data []byte) error {
-	return v.UnmarshalBinaryFrom(bytes.NewReader(data))
-}
-
-func (v *Envelope) UnmarshalBinaryFrom(rd io.Reader) error {
-	reader := encoding.NewReader(rd)
-
-	for {
-		ok := reader.ReadValue(1, func(r io.Reader) error {
-			x, err := UnmarshalSignatureFrom(r)
-			if err == nil {
-				v.Signatures = append(v.Signatures, x)
-			}
-			return err
-		})
-		if !ok {
-			break
-		}
-	}
-	if x, ok := reader.ReadBytes(2); ok {
-		v.TxHash = x
-	}
-	for {
-		if x := new(Transaction); reader.ReadValue(3, x.UnmarshalBinaryFrom) {
-			v.Transaction = append(v.Transaction, x)
-		} else {
-			break
-		}
-	}
-
-	seen, err := reader.Reset(fieldNames_Envelope)
-	if err != nil {
-		return encoding.Error{E: err}
-	}
-	v.fieldsSet = seen
-	v.extraData, err = reader.ReadAll()
-	if err != nil {
-		return encoding.Error{E: err}
-	}
-	return nil
-}
-
 func (v *FactomDataEntryWrapper) UnmarshalBinary(data []byte) error {
 	return v.UnmarshalBinaryFrom(bytes.NewReader(data))
 }
@@ -15927,18 +15780,6 @@ func (v *EnableAccountAuthOperation) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&u)
 }
 
-func (v *Envelope) MarshalJSON() ([]byte, error) {
-	u := struct {
-		Signatures  encoding.JsonUnmarshalListWith[Signature] `json:"signatures,omitempty"`
-		TxHash      *string                                   `json:"txHash,omitempty"`
-		Transaction encoding.JsonList[*Transaction]           `json:"transaction,omitempty"`
-	}{}
-	u.Signatures = encoding.JsonUnmarshalListWith[Signature]{Value: v.Signatures, Func: UnmarshalSignatureJSON}
-	u.TxHash = encoding.BytesToJSON(v.TxHash)
-	u.Transaction = v.Transaction
-	return json.Marshal(&u)
-}
-
 func (v *FactomDataEntry) MarshalJSON() ([]byte, error) {
 	u := struct {
 		AccountId string                     `json:"accountId,omitempty"`
@@ -17685,31 +17526,6 @@ func (v *EnableAccountAuthOperation) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("field Type: not equal: want %v, got %v", v.Type(), u.Type)
 	}
 	v.Authority = u.Authority
-	return nil
-}
-
-func (v *Envelope) UnmarshalJSON(data []byte) error {
-	u := struct {
-		Signatures  encoding.JsonUnmarshalListWith[Signature] `json:"signatures,omitempty"`
-		TxHash      *string                                   `json:"txHash,omitempty"`
-		Transaction encoding.JsonList[*Transaction]           `json:"transaction,omitempty"`
-	}{}
-	u.Signatures = encoding.JsonUnmarshalListWith[Signature]{Value: v.Signatures, Func: UnmarshalSignatureJSON}
-	u.TxHash = encoding.BytesToJSON(v.TxHash)
-	u.Transaction = v.Transaction
-	if err := json.Unmarshal(data, &u); err != nil {
-		return err
-	}
-	v.Signatures = make([]Signature, len(u.Signatures.Value))
-	for i, x := range u.Signatures.Value {
-		v.Signatures[i] = x
-	}
-	if x, err := encoding.BytesFromJSON(u.TxHash); err != nil {
-		return fmt.Errorf("error decoding TxHash: %w", err)
-	} else {
-		v.TxHash = x
-	}
-	v.Transaction = u.Transaction
 	return nil
 }
 

@@ -21,6 +21,7 @@ import (
 
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/encoding"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/merkle"
+	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/url"
 	"gitlab.com/accumulatenetwork/accumulate/protocol"
 )
@@ -161,7 +162,7 @@ type ResponseAccount struct {
 type ResponseByTxId struct {
 	fieldsSet  []bool
 	TxId       *url.TxID                   `json:"txId,omitempty" form:"txId" query:"txId" validate:"required"`
-	Envelope   *protocol.Envelope          `json:"envelope,omitempty" form:"envelope" query:"envelope" validate:"required"`
+	Envelope   *messaging.Envelope         `json:"envelope,omitempty" form:"envelope" query:"envelope" validate:"required"`
 	Status     *protocol.TransactionStatus `json:"status,omitempty" form:"status" query:"status" validate:"required"`
 	Produced   []*url.TxID                 `json:"produced,omitempty" form:"produced" query:"produced" validate:"required"`
 	Height     uint64                      `json:"height" form:"height" query:"height" validate:"required"`
@@ -3949,7 +3950,7 @@ func (v *ResponseByTxId) UnmarshalBinaryFrom(rd io.Reader) error {
 	if x, ok := reader.ReadTxid(1); ok {
 		v.TxId = x
 	}
-	if x := new(protocol.Envelope); reader.ReadValue(2, x.UnmarshalBinaryFrom) {
+	if x := new(messaging.Envelope); reader.ReadValue(2, x.UnmarshalBinaryFrom) {
 		v.Envelope = x
 	}
 	if x := new(protocol.TransactionStatus); reader.ReadValue(3, x.UnmarshalBinaryFrom) {
@@ -4703,7 +4704,7 @@ func (v *ResponseAccount) MarshalJSON() ([]byte, error) {
 func (v *ResponseByTxId) MarshalJSON() ([]byte, error) {
 	u := struct {
 		TxId       *url.TxID                       `json:"txId,omitempty"`
-		Envelope   *protocol.Envelope              `json:"envelope,omitempty"`
+		Envelope   *messaging.Envelope             `json:"envelope,omitempty"`
 		Status     *protocol.TransactionStatus     `json:"status,omitempty"`
 		Produced   encoding.JsonList[*url.TxID]    `json:"produced,omitempty"`
 		Height     uint64                          `json:"height"`
@@ -5321,7 +5322,7 @@ func (v *ResponseAccount) UnmarshalJSON(data []byte) error {
 func (v *ResponseByTxId) UnmarshalJSON(data []byte) error {
 	u := struct {
 		TxId       *url.TxID                       `json:"txId,omitempty"`
-		Envelope   *protocol.Envelope              `json:"envelope,omitempty"`
+		Envelope   *messaging.Envelope             `json:"envelope,omitempty"`
 		Status     *protocol.TransactionStatus     `json:"status,omitempty"`
 		Produced   encoding.JsonList[*url.TxID]    `json:"produced,omitempty"`
 		Height     uint64                          `json:"height"`

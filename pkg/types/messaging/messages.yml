@@ -1,24 +1,41 @@
-LegacyMessage:
-  union: { type: message }
+Envelope:
   fields:
     - name: Signatures
+      repeatable: true
       type: protocol.Signature
       marshal-as: union
+    - name: TxHash
+      type: bytes
+      optional: true
+    - name: Transaction
+      type: protocol.Transaction
+      marshal-as: reference
+      pointer: true
+      optional: true
       repeatable: true
+    - name: Messages
+      type: Message
+      marshal-as: union
+      optional: true
+      repeatable: true
+
+UserTransaction:
+  union: { type: message }
+  fields:
     - name: Transaction
       type: protocol.Transaction
       marshal-as: reference
       pointer: true
 
-# Possible additions for executor v2
-
-# UserTransaction:
-#   union: { type: message }
-#   fields:
-#     - name: Transaction
-#       type: protocol.Transaction
-#       marshal-as: reference
-#       pointer: true
+UserSignature:
+  union: { type: message }
+  fields:
+    - name: Signature
+      # type: protocol.KeySignature
+      type: protocol.Signature
+      marshal-as: union
+    - name: TransactionHash
+      type: hash
 
 # SyntheticTransaction:
 #   union: { type: message }
@@ -31,13 +48,6 @@ LegacyMessage:
 #       type: protocol.AnnotatedReceipt
 #       marshal-as: reference
 #       pointer: true
-
-# UserSignature:
-#   union: { type: message }
-#   fields:
-#     - name: Signature
-#       type: protocol.KeySignature
-#       marshal-as: union
 
 # ValidatorSignature:
 #   union: { type: message }

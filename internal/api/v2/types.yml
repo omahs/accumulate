@@ -391,7 +391,7 @@ ExecuteRequest:
   incomparable: true
   fields:
     - name: Envelope
-      type: protocol.Envelope
+      type: messaging.Envelope
       marshal-as: reference
       pointer: true
     - name: CheckOnly

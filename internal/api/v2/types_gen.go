@@ -25,6 +25,7 @@ import (
 	"gitlab.com/accumulatenetwork/accumulate/internal/node/config"
 	errors2 "gitlab.com/accumulatenetwork/accumulate/pkg/errors"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/encoding"
+	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/url"
 	"gitlab.com/accumulatenetwork/accumulate/protocol"
 )
@@ -87,8 +88,8 @@ type DirectoryQuery struct {
 }
 
 type ExecuteRequest struct {
-	Envelope  *protocol.Envelope `json:"envelope,omitempty" form:"envelope" query:"envelope" validate:"required"`
-	CheckOnly bool               `json:"checkOnly,omitempty" form:"checkOnly" query:"checkOnly"`
+	Envelope  *messaging.Envelope `json:"envelope,omitempty" form:"envelope" query:"envelope" validate:"required"`
+	CheckOnly bool                `json:"checkOnly,omitempty" form:"checkOnly" query:"checkOnly"`
 }
 
 type GeneralQuery struct {

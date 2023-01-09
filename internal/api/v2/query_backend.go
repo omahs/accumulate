@@ -22,6 +22,7 @@ import (
 	"gitlab.com/accumulatenetwork/accumulate/internal/logging"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/errors"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/merkle"
+	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/url"
 	"gitlab.com/accumulatenetwork/accumulate/protocol"
 )
@@ -554,7 +555,7 @@ func (m *queryBackend) querySignature(batch *database.Batch, hash []byte) (*quer
 	remote.Hash = txState.Txid.Hash()
 	txn := new(protocol.Transaction)
 	txn.Body = remote
-	env := new(protocol.Envelope)
+	env := new(messaging.Envelope)
 	env.Transaction = []*protocol.Transaction{txn}
 
 	signer := new(protocol.UnknownAccount)
@@ -630,7 +631,7 @@ func (m *queryBackend) queryByTxId(batch *database.Batch, txid []byte, resolveSi
 	}
 
 	qr := query.ResponseByTxId{}
-	qr.Envelope = new(protocol.Envelope)
+	qr.Envelope = new(messaging.Envelope)
 	qr.Envelope.Transaction = []*protocol.Transaction{txState.Transaction}
 	qr.Status = status
 	qr.TxId = txState.Transaction.ID()
