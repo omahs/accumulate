@@ -69,7 +69,6 @@ func (x *ExecutorV2) Validate(batch *database.Batch, messages []messaging.Messag
 	return st, nil
 }
 
-
 // Begin constructs a [BlockV2] and calls [block.Executor.BeginBlock].
 func (x *ExecutorV2) Begin(params execute.BlockParams) (execute.Block, error) {
 	b := new(BlockV2)

@@ -444,27 +444,39 @@ func (v *UserTransaction) UnmarshalFieldsFrom(reader *encoding.Reader) error {
 
 func (v *Envelope) MarshalJSON() ([]byte, error) {
 	u := struct {
-		Signatures  encoding.JsonUnmarshalListWith[protocol.Signature] `json:"signatures,omitempty"`
-		TxHash      *string                                            `json:"txHash,omitempty"`
-		Transaction encoding.JsonList[*protocol.Transaction]           `json:"transaction,omitempty"`
-		Messages    encoding.JsonUnmarshalListWith[Message]            `json:"messages,omitempty"`
+		Signatures  *encoding.JsonUnmarshalListWith[protocol.Signature] `json:"signatures,omitempty"`
+		TxHash      *string                                             `json:"txHash,omitempty"`
+		Transaction encoding.JsonList[*protocol.Transaction]            `json:"transaction,omitempty"`
+		Messages    *encoding.JsonUnmarshalListWith[Message]            `json:"messages,omitempty"`
 	}{}
-	u.Signatures = encoding.JsonUnmarshalListWith[protocol.Signature]{Value: v.Signatures, Func: protocol.UnmarshalSignatureJSON}
-	u.TxHash = encoding.BytesToJSON(v.TxHash)
-	u.Transaction = v.Transaction
-	u.Messages = encoding.JsonUnmarshalListWith[Message]{Value: v.Messages, Func: UnmarshalMessageJSON}
+	if !(len(v.Signatures) == 0) {
+		u.Signatures = &encoding.JsonUnmarshalListWith[protocol.Signature]{Value: v.Signatures, Func: protocol.UnmarshalSignatureJSON}
+	}
+	if !(len(v.TxHash) == 0) {
+		u.TxHash = encoding.BytesToJSON(v.TxHash)
+	}
+	if !(len(v.Transaction) == 0) {
+		u.Transaction = v.Transaction
+	}
+	if !(len(v.Messages) == 0) {
+		u.Messages = &encoding.JsonUnmarshalListWith[Message]{Value: v.Messages, Func: UnmarshalMessageJSON}
+	}
 	return json.Marshal(&u)
 }
 
 func (v *UserSignature) MarshalJSON() ([]byte, error) {
 	u := struct {
-		Type            MessageType                                    `json:"type"`
-		Signature       encoding.JsonUnmarshalWith[protocol.Signature] `json:"signature,omitempty"`
-		TransactionHash string                                         `json:"transactionHash,omitempty"`
+		Type            MessageType                                     `json:"type"`
+		Signature       *encoding.JsonUnmarshalWith[protocol.Signature] `json:"signature,omitempty"`
+		TransactionHash string                                          `json:"transactionHash,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Signature = encoding.JsonUnmarshalWith[protocol.Signature]{Value: v.Signature, Func: protocol.UnmarshalSignatureJSON}
-	u.TransactionHash = encoding.ChainToJSON(v.TransactionHash)
+	if !(protocol.EqualSignature(v.Signature, nil)) {
+		u.Signature = &encoding.JsonUnmarshalWith[protocol.Signature]{Value: v.Signature, Func: protocol.UnmarshalSignatureJSON}
+	}
+	if !(v.TransactionHash == ([32]byte{})) {
+		u.TransactionHash = encoding.ChainToJSON(v.TransactionHash)
+	}
 	return json.Marshal(&u)
 }
 
@@ -474,21 +486,23 @@ func (v *UserTransaction) MarshalJSON() ([]byte, error) {
 		Transaction *protocol.Transaction `json:"transaction,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Transaction = v.Transaction
+	if !(v.Transaction == nil) {
+		u.Transaction = v.Transaction
+	}
 	return json.Marshal(&u)
 }
 
 func (v *Envelope) UnmarshalJSON(data []byte) error {
 	u := struct {
-		Signatures  encoding.JsonUnmarshalListWith[protocol.Signature] `json:"signatures,omitempty"`
-		TxHash      *string                                            `json:"txHash,omitempty"`
-		Transaction encoding.JsonList[*protocol.Transaction]           `json:"transaction,omitempty"`
-		Messages    encoding.JsonUnmarshalListWith[Message]            `json:"messages,omitempty"`
+		Signatures  *encoding.JsonUnmarshalListWith[protocol.Signature] `json:"signatures,omitempty"`
+		TxHash      *string                                             `json:"txHash,omitempty"`
+		Transaction encoding.JsonList[*protocol.Transaction]            `json:"transaction,omitempty"`
+		Messages    *encoding.JsonUnmarshalListWith[Message]            `json:"messages,omitempty"`
 	}{}
-	u.Signatures = encoding.JsonUnmarshalListWith[protocol.Signature]{Value: v.Signatures, Func: protocol.UnmarshalSignatureJSON}
+	u.Signatures = &encoding.JsonUnmarshalListWith[protocol.Signature]{Value: v.Signatures, Func: protocol.UnmarshalSignatureJSON}
 	u.TxHash = encoding.BytesToJSON(v.TxHash)
 	u.Transaction = v.Transaction
-	u.Messages = encoding.JsonUnmarshalListWith[Message]{Value: v.Messages, Func: UnmarshalMessageJSON}
+	u.Messages = &encoding.JsonUnmarshalListWith[Message]{Value: v.Messages, Func: UnmarshalMessageJSON}
 	if err := json.Unmarshal(data, &u); err != nil {
 		return err
 	}
@@ -511,12 +525,12 @@ func (v *Envelope) UnmarshalJSON(data []byte) error {
 
 func (v *UserSignature) UnmarshalJSON(data []byte) error {
 	u := struct {
-		Type            MessageType                                    `json:"type"`
-		Signature       encoding.JsonUnmarshalWith[protocol.Signature] `json:"signature,omitempty"`
-		TransactionHash string                                         `json:"transactionHash,omitempty"`
+		Type            MessageType                                     `json:"type"`
+		Signature       *encoding.JsonUnmarshalWith[protocol.Signature] `json:"signature,omitempty"`
+		TransactionHash string                                          `json:"transactionHash,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Signature = encoding.JsonUnmarshalWith[protocol.Signature]{Value: v.Signature, Func: protocol.UnmarshalSignatureJSON}
+	u.Signature = &encoding.JsonUnmarshalWith[protocol.Signature]{Value: v.Signature, Func: protocol.UnmarshalSignatureJSON}
 	u.TransactionHash = encoding.ChainToJSON(v.TransactionHash)
 	if err := json.Unmarshal(data, &u); err != nil {
 		return err

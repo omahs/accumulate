@@ -2448,13 +2448,17 @@ func (v *ValidateResponse) UnmarshalFieldsFrom(reader *encoding.Reader) error {
 
 func (v *Addressed) MarshalJSON() ([]byte, error) {
 	u := struct {
-		Type    Type                                      `json:"type"`
-		Message encoding.JsonUnmarshalWith[Message]       `json:"message,omitempty"`
-		Address encoding.JsonUnmarshalWith[p2p.Multiaddr] `json:"address,omitempty"`
+		Type    Type                                       `json:"type"`
+		Message *encoding.JsonUnmarshalWith[Message]       `json:"message,omitempty"`
+		Address *encoding.JsonUnmarshalWith[p2p.Multiaddr] `json:"address,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Message = encoding.JsonUnmarshalWith[Message]{Value: v.Message, Func: UnmarshalJSON}
-	u.Address = encoding.JsonUnmarshalWith[p2p.Multiaddr]{Value: v.Address, Func: p2p.UnmarshalMultiaddrJSON}
+	if !(Equal(v.Message, nil)) {
+		u.Message = &encoding.JsonUnmarshalWith[Message]{Value: v.Message, Func: UnmarshalJSON}
+	}
+	if !(p2p.EqualMultiaddr(v.Address, nil)) {
+		u.Address = &encoding.JsonUnmarshalWith[p2p.Multiaddr]{Value: v.Address, Func: p2p.UnmarshalMultiaddrJSON}
+	}
 	return json.Marshal(&u)
 }
 
@@ -2464,17 +2468,21 @@ func (v *ErrorResponse) MarshalJSON() ([]byte, error) {
 		Error *errors2.Error `json:"error,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Error = v.Error
+	if !(v.Error == nil) {
+		u.Error = v.Error
+	}
 	return json.Marshal(&u)
 }
 
 func (v *EventMessage) MarshalJSON() ([]byte, error) {
 	u := struct {
-		Type  Type                                      `json:"type"`
-		Value encoding.JsonUnmarshalListWith[api.Event] `json:"value,omitempty"`
+		Type  Type                                       `json:"type"`
+		Value *encoding.JsonUnmarshalListWith[api.Event] `json:"value,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Value = encoding.JsonUnmarshalListWith[api.Event]{Value: v.Value, Func: api.UnmarshalEventJSON}
+	if !(len(v.Value) == 0) {
+		u.Value = &encoding.JsonUnmarshalListWith[api.Event]{Value: v.Value, Func: api.UnmarshalEventJSON}
+	}
 	return json.Marshal(&u)
 }
 
@@ -2484,7 +2492,9 @@ func (v *FaucetRequest) MarshalJSON() ([]byte, error) {
 		Account *url.URL `json:"account,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Account = v.Account
+	if !(v.Account == nil) {
+		u.Account = v.Account
+	}
 	return json.Marshal(&u)
 }
 
@@ -2494,7 +2504,9 @@ func (v *FaucetResponse) MarshalJSON() ([]byte, error) {
 		Value *api.Submission `json:"value,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Value = v.Value
+	if !(v.Value == nil) {
+		u.Value = v.Value
+	}
 	return json.Marshal(&u)
 }
 
@@ -2505,8 +2517,14 @@ func (v *MetricsRequest) MarshalJSON() ([]byte, error) {
 		Span      uint64 `json:"span,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Partition = v.MetricsOptions.Partition
-	u.Span = v.MetricsOptions.Span
+	if !(len(v.MetricsOptions.Partition) == 0) {
+
+		u.Partition = v.MetricsOptions.Partition
+	}
+	if !(v.MetricsOptions.Span == 0) {
+
+		u.Span = v.MetricsOptions.Span
+	}
 	return json.Marshal(&u)
 }
 
@@ -2516,7 +2534,9 @@ func (v *MetricsResponse) MarshalJSON() ([]byte, error) {
 		Value *api.Metrics `json:"value,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Value = v.Value
+	if !(v.Value == nil) {
+		u.Value = v.Value
+	}
 	return json.Marshal(&u)
 }
 
@@ -2526,7 +2546,10 @@ func (v *NetworkStatusRequest) MarshalJSON() ([]byte, error) {
 		Partition string `json:"partition,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Partition = v.NetworkStatusOptions.Partition
+	if !(len(v.NetworkStatusOptions.Partition) == 0) {
+
+		u.Partition = v.NetworkStatusOptions.Partition
+	}
 	return json.Marshal(&u)
 }
 
@@ -2536,7 +2559,9 @@ func (v *NetworkStatusResponse) MarshalJSON() ([]byte, error) {
 		Value *api.NetworkStatus `json:"value,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Value = v.Value
+	if !(v.Value == nil) {
+		u.Value = v.Value
+	}
 	return json.Marshal(&u)
 }
 
@@ -2547,8 +2572,14 @@ func (v *NodeStatusRequest) MarshalJSON() ([]byte, error) {
 		Partition string `json:"partition,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.NodeID = v.NodeStatusOptions.NodeID
-	u.Partition = v.NodeStatusOptions.Partition
+	if !(len(v.NodeStatusOptions.NodeID) == 0) {
+
+		u.NodeID = v.NodeStatusOptions.NodeID
+	}
+	if !(len(v.NodeStatusOptions.Partition) == 0) {
+
+		u.Partition = v.NodeStatusOptions.Partition
+	}
 	return json.Marshal(&u)
 }
 
@@ -2558,7 +2589,9 @@ func (v *NodeStatusResponse) MarshalJSON() ([]byte, error) {
 		Value *api.NodeStatus `json:"value,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Value = v.Value
+	if !(v.Value == nil) {
+		u.Value = v.Value
+	}
 	return json.Marshal(&u)
 }
 
@@ -2570,9 +2603,15 @@ func (v *PrivateSequenceRequest) MarshalJSON() ([]byte, error) {
 		SequenceNumber uint64   `json:"sequenceNumber,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Source = v.Source
-	u.Destination = v.Destination
-	u.SequenceNumber = v.SequenceNumber
+	if !(v.Source == nil) {
+		u.Source = v.Source
+	}
+	if !(v.Destination == nil) {
+		u.Destination = v.Destination
+	}
+	if !(v.SequenceNumber == 0) {
+		u.SequenceNumber = v.SequenceNumber
+	}
 	return json.Marshal(&u)
 }
 
@@ -2582,29 +2621,37 @@ func (v *PrivateSequenceResponse) MarshalJSON() ([]byte, error) {
 		Value *api.TransactionRecord `json:"value,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Value = v.Value
+	if !(v.Value == nil) {
+		u.Value = v.Value
+	}
 	return json.Marshal(&u)
 }
 
 func (v *QueryRequest) MarshalJSON() ([]byte, error) {
 	u := struct {
-		Type  Type                                  `json:"type"`
-		Scope *url.URL                              `json:"scope,omitempty"`
-		Query encoding.JsonUnmarshalWith[api.Query] `json:"query,omitempty"`
+		Type  Type                                   `json:"type"`
+		Scope *url.URL                               `json:"scope,omitempty"`
+		Query *encoding.JsonUnmarshalWith[api.Query] `json:"query,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Scope = v.Scope
-	u.Query = encoding.JsonUnmarshalWith[api.Query]{Value: v.Query, Func: api.UnmarshalQueryJSON}
+	if !(v.Scope == nil) {
+		u.Scope = v.Scope
+	}
+	if !(api.EqualQuery(v.Query, nil)) {
+		u.Query = &encoding.JsonUnmarshalWith[api.Query]{Value: v.Query, Func: api.UnmarshalQueryJSON}
+	}
 	return json.Marshal(&u)
 }
 
 func (v *RecordResponse) MarshalJSON() ([]byte, error) {
 	u := struct {
-		Type  Type                                   `json:"type"`
-		Value encoding.JsonUnmarshalWith[api.Record] `json:"value,omitempty"`
+		Type  Type                                    `json:"type"`
+		Value *encoding.JsonUnmarshalWith[api.Record] `json:"value,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Value = encoding.JsonUnmarshalWith[api.Record]{Value: v.Value, Func: api.UnmarshalRecordJSON}
+	if !(api.EqualRecord(v.Value, nil)) {
+		u.Value = &encoding.JsonUnmarshalWith[api.Record]{Value: v.Value, Func: api.UnmarshalRecordJSON}
+	}
 	return json.Marshal(&u)
 }
 
@@ -2616,9 +2663,17 @@ func (v *SubmitRequest) MarshalJSON() ([]byte, error) {
 		Wait     *bool               `json:"wait,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Envelope = v.Envelope
-	u.Verify = v.SubmitOptions.Verify
-	u.Wait = v.SubmitOptions.Wait
+	if !(v.Envelope == nil) {
+		u.Envelope = v.Envelope
+	}
+	if !(v.SubmitOptions.Verify == nil) {
+
+		u.Verify = v.SubmitOptions.Verify
+	}
+	if !(v.SubmitOptions.Wait == nil) {
+
+		u.Wait = v.SubmitOptions.Wait
+	}
 	return json.Marshal(&u)
 }
 
@@ -2628,7 +2683,9 @@ func (v *SubmitResponse) MarshalJSON() ([]byte, error) {
 		Value encoding.JsonList[*api.Submission] `json:"value,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Value = v.Value
+	if !(len(v.Value) == 0) {
+		u.Value = v.Value
+	}
 	return json.Marshal(&u)
 }
 
@@ -2639,8 +2696,14 @@ func (v *SubscribeRequest) MarshalJSON() ([]byte, error) {
 		Account   *url.URL `json:"account,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Partition = v.SubscribeOptions.Partition
-	u.Account = v.SubscribeOptions.Account
+	if !(len(v.SubscribeOptions.Partition) == 0) {
+
+		u.Partition = v.SubscribeOptions.Partition
+	}
+	if !(v.SubscribeOptions.Account == nil) {
+
+		u.Account = v.SubscribeOptions.Account
+	}
 	return json.Marshal(&u)
 }
 
@@ -2659,8 +2722,13 @@ func (v *ValidateRequest) MarshalJSON() ([]byte, error) {
 		Full     *bool               `json:"full,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Envelope = v.Envelope
-	u.Full = v.ValidateOptions.Full
+	if !(v.Envelope == nil) {
+		u.Envelope = v.Envelope
+	}
+	if !(v.ValidateOptions.Full == nil) {
+
+		u.Full = v.ValidateOptions.Full
+	}
 	return json.Marshal(&u)
 }
 
@@ -2670,19 +2738,21 @@ func (v *ValidateResponse) MarshalJSON() ([]byte, error) {
 		Value encoding.JsonList[*api.Submission] `json:"value,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Value = v.Value
+	if !(len(v.Value) == 0) {
+		u.Value = v.Value
+	}
 	return json.Marshal(&u)
 }
 
 func (v *Addressed) UnmarshalJSON(data []byte) error {
 	u := struct {
-		Type    Type                                      `json:"type"`
-		Message encoding.JsonUnmarshalWith[Message]       `json:"message,omitempty"`
-		Address encoding.JsonUnmarshalWith[p2p.Multiaddr] `json:"address,omitempty"`
+		Type    Type                                       `json:"type"`
+		Message *encoding.JsonUnmarshalWith[Message]       `json:"message,omitempty"`
+		Address *encoding.JsonUnmarshalWith[p2p.Multiaddr] `json:"address,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Message = encoding.JsonUnmarshalWith[Message]{Value: v.Message, Func: UnmarshalJSON}
-	u.Address = encoding.JsonUnmarshalWith[p2p.Multiaddr]{Value: v.Address, Func: p2p.UnmarshalMultiaddrJSON}
+	u.Message = &encoding.JsonUnmarshalWith[Message]{Value: v.Message, Func: UnmarshalJSON}
+	u.Address = &encoding.JsonUnmarshalWith[p2p.Multiaddr]{Value: v.Address, Func: p2p.UnmarshalMultiaddrJSON}
 	if err := json.Unmarshal(data, &u); err != nil {
 		return err
 	}
@@ -2715,11 +2785,11 @@ func (v *ErrorResponse) UnmarshalJSON(data []byte) error {
 
 func (v *EventMessage) UnmarshalJSON(data []byte) error {
 	u := struct {
-		Type  Type                                      `json:"type"`
-		Value encoding.JsonUnmarshalListWith[api.Event] `json:"value,omitempty"`
+		Type  Type                                       `json:"type"`
+		Value *encoding.JsonUnmarshalListWith[api.Event] `json:"value,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Value = encoding.JsonUnmarshalListWith[api.Event]{Value: v.Value, Func: api.UnmarshalEventJSON}
+	u.Value = &encoding.JsonUnmarshalListWith[api.Event]{Value: v.Value, Func: api.UnmarshalEventJSON}
 	if err := json.Unmarshal(data, &u); err != nil {
 		return err
 	}
@@ -2917,13 +2987,13 @@ func (v *PrivateSequenceResponse) UnmarshalJSON(data []byte) error {
 
 func (v *QueryRequest) UnmarshalJSON(data []byte) error {
 	u := struct {
-		Type  Type                                  `json:"type"`
-		Scope *url.URL                              `json:"scope,omitempty"`
-		Query encoding.JsonUnmarshalWith[api.Query] `json:"query,omitempty"`
+		Type  Type                                   `json:"type"`
+		Scope *url.URL                               `json:"scope,omitempty"`
+		Query *encoding.JsonUnmarshalWith[api.Query] `json:"query,omitempty"`
 	}{}
 	u.Type = v.Type()
 	u.Scope = v.Scope
-	u.Query = encoding.JsonUnmarshalWith[api.Query]{Value: v.Query, Func: api.UnmarshalQueryJSON}
+	u.Query = &encoding.JsonUnmarshalWith[api.Query]{Value: v.Query, Func: api.UnmarshalQueryJSON}
 	if err := json.Unmarshal(data, &u); err != nil {
 		return err
 	}
@@ -2938,11 +3008,11 @@ func (v *QueryRequest) UnmarshalJSON(data []byte) error {
 
 func (v *RecordResponse) UnmarshalJSON(data []byte) error {
 	u := struct {
-		Type  Type                                   `json:"type"`
-		Value encoding.JsonUnmarshalWith[api.Record] `json:"value,omitempty"`
+		Type  Type                                    `json:"type"`
+		Value *encoding.JsonUnmarshalWith[api.Record] `json:"value,omitempty"`
 	}{}
 	u.Type = v.Type()
-	u.Value = encoding.JsonUnmarshalWith[api.Record]{Value: v.Value, Func: api.UnmarshalRecordJSON}
+	u.Value = &encoding.JsonUnmarshalWith[api.Record]{Value: v.Value, Func: api.UnmarshalRecordJSON}
 	if err := json.Unmarshal(data, &u); err != nil {
 		return err
 	}
