@@ -299,9 +299,10 @@ type ServiceAddress struct {
 
 type SignatureRecord struct {
 	fieldsSet []bool
-	Signature protocol.Signature `json:"signature,omitempty" form:"signature" query:"signature" validate:"required"`
-	TxID      *url.TxID          `json:"txID,omitempty" form:"txID" query:"txID" validate:"required"`
-	Signer    protocol.Signer    `json:"signer,omitempty" form:"signer" query:"signer" validate:"required"`
+	Signature protocol.Signature          `json:"signature,omitempty" form:"signature" query:"signature" validate:"required"`
+	TxID      *url.TxID                   `json:"txID,omitempty" form:"txID" query:"txID" validate:"required"`
+	Signer    protocol.Signer             `json:"signer,omitempty" form:"signer" query:"signer" validate:"required"`
+	Status    *protocol.TransactionStatus `json:"status,omitempty" form:"status" query:"status" validate:"required"`
 	extraData []byte
 }
 
@@ -903,6 +904,9 @@ func (v *SignatureRecord) Copy() *SignatureRecord {
 	}
 	if v.Signer != nil {
 		u.Signer = protocol.CopySigner(v.Signer)
+	}
+	if v.Status != nil {
+		u.Status = (v.Status).Copy()
 	}
 
 	return u
@@ -1666,6 +1670,14 @@ func (v *SignatureRecord) Equal(u *SignatureRecord) bool {
 		return false
 	}
 	if !(protocol.EqualSigner(v.Signer, u.Signer)) {
+		return false
+	}
+	switch {
+	case v.Status == u.Status:
+		// equal
+	case v.Status == nil || u.Status == nil:
+		return false
+	case !((v.Status).Equal(u.Status)):
 		return false
 	}
 
@@ -3676,6 +3688,7 @@ var fieldNames_SignatureRecord = []string{
 	2: "Signature",
 	3: "TxID",
 	4: "Signer",
+	5: "Status",
 }
 
 func (v *SignatureRecord) MarshalBinary() ([]byte, error) {
@@ -3691,6 +3704,9 @@ func (v *SignatureRecord) MarshalBinary() ([]byte, error) {
 	}
 	if !(protocol.EqualSigner(v.Signer, nil)) {
 		writer.WriteValue(4, v.Signer.MarshalBinary)
+	}
+	if !(v.Status == nil) {
+		writer.WriteValue(5, v.Status.MarshalBinary)
 	}
 
 	_, _, err := writer.Reset(fieldNames_SignatureRecord)
@@ -3721,6 +3737,11 @@ func (v *SignatureRecord) IsValid() error {
 		errs = append(errs, "field Signer is missing")
 	} else if protocol.EqualSigner(v.Signer, nil) {
 		errs = append(errs, "field Signer is not set")
+	}
+	if len(v.fieldsSet) > 4 && !v.fieldsSet[4] {
+		errs = append(errs, "field Status is missing")
+	} else if v.Status == nil {
+		errs = append(errs, "field Status is not set")
 	}
 
 	switch len(errs) {
@@ -5377,6 +5398,9 @@ func (v *SignatureRecord) UnmarshalFieldsFrom(reader *encoding.Reader) error {
 		}
 		return err
 	})
+	if x := new(protocol.TransactionStatus); reader.ReadValue(5, x.UnmarshalBinaryFrom) {
+		v.Status = x
+	}
 
 	seen, err := reader.Reset(fieldNames_SignatureRecord)
 	if err != nil {
@@ -6009,11 +6033,13 @@ func (v *SignatureRecord) MarshalJSON() ([]byte, error) {
 		Signature  encoding.JsonUnmarshalWith[protocol.Signature] `json:"signature,omitempty"`
 		TxID       *url.TxID                                      `json:"txID,omitempty"`
 		Signer     encoding.JsonUnmarshalWith[protocol.Signer]    `json:"signer,omitempty"`
+		Status     *protocol.TransactionStatus                    `json:"status,omitempty"`
 	}{}
 	u.RecordType = v.RecordType()
 	u.Signature = encoding.JsonUnmarshalWith[protocol.Signature]{Value: v.Signature, Func: protocol.UnmarshalSignatureJSON}
 	u.TxID = v.TxID
 	u.Signer = encoding.JsonUnmarshalWith[protocol.Signer]{Value: v.Signer, Func: protocol.UnmarshalSignerJSON}
+	u.Status = v.Status
 	return json.Marshal(&u)
 }
 
@@ -6711,11 +6737,13 @@ func (v *SignatureRecord) UnmarshalJSON(data []byte) error {
 		Signature  encoding.JsonUnmarshalWith[protocol.Signature] `json:"signature,omitempty"`
 		TxID       *url.TxID                                      `json:"txID,omitempty"`
 		Signer     encoding.JsonUnmarshalWith[protocol.Signer]    `json:"signer,omitempty"`
+		Status     *protocol.TransactionStatus                    `json:"status,omitempty"`
 	}{}
 	u.RecordType = v.RecordType()
 	u.Signature = encoding.JsonUnmarshalWith[protocol.Signature]{Value: v.Signature, Func: protocol.UnmarshalSignatureJSON}
 	u.TxID = v.TxID
 	u.Signer = encoding.JsonUnmarshalWith[protocol.Signer]{Value: v.Signer, Func: protocol.UnmarshalSignerJSON}
+	u.Status = v.Status
 	if err := json.Unmarshal(data, &u); err != nil {
 		return err
 	}
@@ -6727,6 +6755,7 @@ func (v *SignatureRecord) UnmarshalJSON(data []byte) error {
 	v.TxID = u.TxID
 	v.Signer = u.Signer.Value
 
+	v.Status = u.Status
 	return nil
 }
 

@@ -39,6 +39,10 @@ func (q Querier2) QueryTransaction(ctx context.Context, txid *url.TxID, query *D
 	return recordIs[*TransactionRecord](doQuery(q, ctx, txid.AsUrl(), query))
 }
 
+func (q Querier2) QuerySignature(ctx context.Context, txid *url.TxID, query *DefaultQuery) (*SignatureRecord, error) {
+	return recordIs[*SignatureRecord](doQuery(q, ctx, txid.AsUrl(), query))
+}
+
 func (q Querier2) QueryChain(ctx context.Context, scope *url.URL, query *ChainQuery) (*ChainRecord, error) {
 	return recordIs[*ChainRecord](doQuery(q, ctx, scope, query))
 }
