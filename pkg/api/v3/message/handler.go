@@ -9,6 +9,7 @@ package message
 import (
 	"context"
 	"io"
+	"runtime/debug"
 
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/tendermint/tendermint/libs/log"
@@ -46,7 +47,7 @@ func (h *Handler) Handle(s Stream) {
 	// Panic protection
 	defer func() {
 		if r := recover(); r != nil {
-			h.logger.Error("Panicked while handling stream", "error", r)
+			h.logger.Error("Panicked while handling stream", "error", r, "stack", debug.Stack())
 		}
 	}()
 

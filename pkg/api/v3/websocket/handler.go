@@ -149,7 +149,7 @@ func (h *Handler) handle(s message.StreamOf[*Message], ctx context.Context, canc
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
-					h.logger.Error("Panicked while handling stream", "error", r)
+					h.logger.Error("Panicked while handling stream", "error", r, "stack", debug.Stack())
 				}
 			}()
 			defer cancel()
@@ -170,7 +170,7 @@ func (h *Handler) handle(s message.StreamOf[*Message], ctx context.Context, canc
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
-					h.logger.Error("Panicked while handling stream", "error", r)
+					h.logger.Error("Panicked while handling stream", "error", r, "stack", debug.Stack())
 				}
 			}()
 			defer cancel()

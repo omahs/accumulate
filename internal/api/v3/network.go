@@ -54,6 +54,7 @@ func (s *NetworkService) Type() api.ServiceType { return api.ServiceTypeNetwork 
 func (s *NetworkService) NetworkStatus(ctx context.Context, _ api.NetworkStatusOptions) (*api.NetworkStatus, error) {
 	values := s.values.Load()
 	if values == nil {
+		values = new(core.GlobalValues)
 		err := s.database.View(func(batch *database.Batch) error {
 			return values.Load(config.NetworkUrl{URL: protocol.PartitionUrl(s.partition)}, func(accountUrl *url.URL, target interface{}) error {
 				return batch.Account(accountUrl).Main().GetAs(target)
