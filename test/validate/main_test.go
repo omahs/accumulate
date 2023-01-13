@@ -66,9 +66,9 @@ func TestValidate(t *testing.T) {
 
 // TestValidate runs the validation test suite against a full network.
 func TestValidateFull(t *testing.T) {
-	// if !*fullValidate {
-	// 	t.Skip()
-	// }
+	if !*fullValidate {
+		t.Skip()
+	}
 
 	// Tendermint is stupid and doesn't properly shut down its databases. So we
 	// have no way to ensure Tendermint is completely shut down, which leads to
