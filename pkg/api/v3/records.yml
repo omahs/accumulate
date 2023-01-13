@@ -123,6 +123,10 @@ SignatureRecord:
     - name: Signer
       type: protocol.Signer
       marshal-as: union
+    - name: Status
+      type: protocol.TransactionStatus
+      marshal-as: reference
+      pointer: true
 
 MinorBlockRecord:
   union: { type: record }

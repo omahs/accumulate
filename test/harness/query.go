@@ -66,6 +66,16 @@ func (h *Harness) QueryTransaction(txid *url.TxID, query *api.DefaultQuery) *api
 	return r
 }
 
+// QuerySignature queries the Harness's service, passing the given arguments.
+// QuerySignature fails if Query returns an error. See
+// api.Querier2.QuerySignature.
+func (h *Harness) QuerySignature(txid *url.TxID, query *api.DefaultQuery) *api.SignatureRecord {
+	h.TB.Helper()
+	r, err := h.Query().QuerySignature(context.Background(), txid, query)
+	require.NoError(h.TB, err)
+	return r
+}
+
 // QueryChain queries the Harness's service, passing the given arguments.
 // QueryChain fails if Query returns an error. See api.Querier2.QueryChain.
 func (h *Harness) QueryChain(scope *url.URL, query *api.ChainQuery) *api.ChainRecord {

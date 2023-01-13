@@ -118,12 +118,10 @@ func (c condTxn) status(predicate func(h *Harness, c any, status *protocol.Trans
 	return func(h *Harness) bool {
 		// Query the transaction
 		h.TB.Helper()
-		r, err := h.Query().QueryTransaction(context.Background(), c.id, nil)
+		r, err := h.Query().Query(context.Background(), c.id.AsUrl(), new(api.DefaultQuery))
 		switch {
 		case err == nil:
-			// Evaluate the predicate
-			r.Status.TxID = c.id
-			return predicate(h, c, r.Status)
+			// Ok
 		case errors.Is(err, errors.NotFound):
 			// Wait
 			return false
@@ -131,6 +129,19 @@ func (c condTxn) status(predicate func(h *Harness, c any, status *protocol.Trans
 		default:
 			// Unknown error
 			require.NoError(h.TB, err)
+			panic("not reached")
+		}
+		switch r := r.(type) {
+		case *api.TransactionRecord:
+			// Evaluate the predicate
+			r.Status.TxID = c.id
+			return predicate(h, c, r.Status)
+		case *api.SignatureRecord:
+			// Evaluate the predicate
+			r.Status.TxID = c.id
+			return predicate(h, c, r.Status)
+		default:
+			h.TB.Fatalf("unexpected response type %v", r.RecordType())
 			panic("not reached")
 		}
 	}
