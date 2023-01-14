@@ -1038,7 +1038,9 @@ func (v *SigOrTxn) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	v.Transaction = u.Transaction
-	v.Signature = u.Signature.Value
+	if u.Signature != nil {
+		v.Signature = u.Signature.Value
+	}
 
 	v.Txid = u.Txid
 	return nil

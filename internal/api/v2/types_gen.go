@@ -2322,7 +2322,9 @@ func (v *DataEntryQueryResponse) UnmarshalJSON(data []byte) error {
 	} else {
 		v.EntryHash = x
 	}
-	v.Entry = u.Entry.Value
+	if u.Entry != nil {
+		v.Entry = u.Entry.Value
+	}
 
 	v.TxId = u.TxId
 	v.CauseTxId = u.CauseTxId

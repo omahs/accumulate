@@ -538,7 +538,9 @@ func (v *UserSignature) UnmarshalJSON(data []byte) error {
 	if !(v.Type() == u.Type) {
 		return fmt.Errorf("field Type: not equal: want %v, got %v", v.Type(), u.Type)
 	}
-	v.Signature = u.Signature.Value
+	if u.Signature != nil {
+		v.Signature = u.Signature.Value
+	}
 
 	if x, err := encoding.ChainFromJSON(u.TransactionHash); err != nil {
 		return fmt.Errorf("error decoding TransactionHash: %w", err)

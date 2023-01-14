@@ -2759,9 +2759,13 @@ func (v *Addressed) UnmarshalJSON(data []byte) error {
 	if !(v.Type() == u.Type) {
 		return fmt.Errorf("field Type: not equal: want %v, got %v", v.Type(), u.Type)
 	}
-	v.Message = u.Message.Value
+	if u.Message != nil {
+		v.Message = u.Message.Value
+	}
 
-	v.Address = u.Address.Value
+	if u.Address != nil {
+		v.Address = u.Address.Value
+	}
 
 	return nil
 }
@@ -3001,7 +3005,9 @@ func (v *QueryRequest) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("field Type: not equal: want %v, got %v", v.Type(), u.Type)
 	}
 	v.Scope = u.Scope
-	v.Query = u.Query.Value
+	if u.Query != nil {
+		v.Query = u.Query.Value
+	}
 
 	return nil
 }
@@ -3019,7 +3025,9 @@ func (v *RecordResponse) UnmarshalJSON(data []byte) error {
 	if !(v.Type() == u.Type) {
 		return fmt.Errorf("field Type: not equal: want %v, got %v", v.Type(), u.Type)
 	}
-	v.Value = u.Value.Value
+	if u.Value != nil {
+		v.Value = u.Value.Value
+	}
 
 	return nil
 }

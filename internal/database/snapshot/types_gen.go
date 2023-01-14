@@ -1592,7 +1592,9 @@ func (v *Account) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &u); err != nil {
 		return err
 	}
-	v.Main = u.Main.Value
+	if u.Main != nil {
+		v.Main = u.Main.Value
+	}
 
 	v.OldChains = u.OldChains
 	v.Pending = u.Pending
@@ -1706,7 +1708,9 @@ func (v *Signature) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	v.Txid = u.Txid
-	v.Signature = u.Signature.Value
+	if u.Signature != nil {
+		v.Signature = u.Signature.Value
+	}
 
 	return nil
 }

@@ -544,7 +544,9 @@ func (v *AddrInfo) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &u); err != nil {
 		return err
 	}
-	v.Info.ID = u.ID.Value
+	if u.ID != nil {
+		v.Info.ID = u.ID.Value
+	}
 
 	v.Info.Services = u.Services
 	v.Addrs = make([]p2p.Multiaddr, len(u.Addrs.Value))
@@ -564,7 +566,9 @@ func (v *Info) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &u); err != nil {
 		return err
 	}
-	v.ID = u.ID.Value
+	if u.ID != nil {
+		v.ID = u.ID.Value
+	}
 
 	v.Services = u.Services
 	return nil

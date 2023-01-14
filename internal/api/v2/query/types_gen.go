@@ -5502,7 +5502,9 @@ func (v *ResponseAccount) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &u); err != nil {
 		return err
 	}
-	v.Account = u.Account.Value
+	if u.Account != nil {
+		v.Account = u.Account.Value
+	}
 
 	v.ChainState = u.ChainState
 	v.Receipt = u.Receipt
@@ -5643,7 +5645,9 @@ func (v *ResponseDataEntry) UnmarshalJSON(data []byte) error {
 	} else {
 		v.EntryHash = x
 	}
-	v.Entry = u.Entry.Value
+	if u.Entry != nil {
+		v.Entry = u.Entry.Value
+	}
 
 	v.TxId = u.TxId
 	v.CauseTxId = u.CauseTxId
@@ -5820,7 +5824,9 @@ func (v *SignatureSet) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &u); err != nil {
 		return err
 	}
-	v.Account = u.Account.Value
+	if u.Account != nil {
+		v.Account = u.Account.Value
+	}
 
 	v.Signatures = make([]protocol.Signature, len(u.Signatures.Value))
 	for i, x := range u.Signatures.Value {

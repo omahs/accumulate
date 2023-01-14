@@ -843,7 +843,9 @@ func (v *NetworkConfigResponse) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	v.NetworkState = u.NetworkState
-	v.Signature = u.Signature.Value
+	if u.Signature != nil {
+		v.Signature = u.Signature.Value
+	}
 
 	return nil
 }
@@ -871,7 +873,9 @@ func (v *PartitionListResponse) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	v.PartitionList.Partitions = u.Partitions
-	v.Signature = u.Signature.Value
+	if u.Signature != nil {
+		v.Signature = u.Signature.Value
+	}
 
 	return nil
 }
@@ -887,7 +891,9 @@ func (v *SeedCountResponse) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	v.SeedCount.Count = u.Count
-	v.Signature = u.Signature.Value
+	if u.Signature != nil {
+		v.Signature = u.Signature.Value
+	}
 
 	return nil
 }
@@ -927,7 +933,9 @@ func (v *SeedListResponse) UnmarshalJSON(data []byte) error {
 	v.SeedList.BasePort = u.BasePort
 	v.SeedList.Type = u.Type
 	v.SeedList.Addresses = u.Addresses
-	v.Signature = u.Signature.Value
+	if u.Signature != nil {
+		v.Signature = u.Signature.Value
+	}
 
 	return nil
 }

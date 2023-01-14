@@ -6302,7 +6302,9 @@ func (v *AccountRecord) UnmarshalJSON(data []byte) error {
 	if !(v.RecordType() == u.RecordType) {
 		return fmt.Errorf("field RecordType: not equal: want %v, got %v", v.RecordType(), u.RecordType)
 	}
-	v.Account = u.Account.Value
+	if u.Account != nil {
+		v.Account = u.Account.Value
+	}
 
 	v.Directory = u.Directory
 	v.Pending = u.Pending
@@ -6429,7 +6431,9 @@ func (v *ChainEntryRecord[T]) UnmarshalJSON(data []byte) error {
 	} else {
 		v.Entry = x
 	}
-	v.Value = u.Value.Value
+	if u.Value != nil {
+		v.Value = u.Value.Value
+	}
 
 	v.Receipt = u.Receipt
 	return nil
@@ -6942,10 +6946,14 @@ func (v *SignatureRecord) UnmarshalJSON(data []byte) error {
 	if !(v.RecordType() == u.RecordType) {
 		return fmt.Errorf("field RecordType: not equal: want %v, got %v", v.RecordType(), u.RecordType)
 	}
-	v.Signature = u.Signature.Value
+	if u.Signature != nil {
+		v.Signature = u.Signature.Value
+	}
 
 	v.TxID = u.TxID
-	v.Signer = u.Signer.Value
+	if u.Signer != nil {
+		v.Signer = u.Signer.Value
+	}
 
 	v.Status = u.Status
 	return nil

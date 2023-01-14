@@ -174,7 +174,9 @@ func (v *Message) UnmarshalJSON(data []byte) error {
 	}
 	v.ID = u.ID
 	v.Status = u.Status
-	v.Message = u.Message.Value
+	if u.Message != nil {
+		v.Message = u.Message.Value
+	}
 
 	return nil
 }
