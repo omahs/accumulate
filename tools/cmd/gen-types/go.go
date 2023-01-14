@@ -604,7 +604,7 @@ func GoValueFromJson(field *Field, tgtName, srcName, errName string, errArgs ...
 	err := GoFieldError("decoding", errName, errArgs...)
 	if field.MarshalAs == Union {
 		if !field.Repeatable {
-			return fmt.Sprintf("\t%s = %s.Value\n", tgtName, srcName), nil
+			return fmt.Sprintf("\tif %s != nil { %s = %[1]s.Value }\n", srcName, tgtName), nil
 		}
 		return fmt.Sprintf(
 			"	%s = make(%s, len(%s.Value));\n"+

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1
+
+### API
+
+- For certain types, zero-valued fields will be omitted from JSON output instead of being returned as null or zero.
+  - `sendTokens.hash`, `signature.transactionHash`, `tokenIssuer.issued`, `dataAccount.entry`
+
 ## 1.0.1
 
 - Fix bugs in the SDK (617ff4673919aa0f17596ba2702ee075daca4a3c, 95694666ef9d562497bd43cbb9473533170f9be4)

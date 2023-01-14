@@ -45,13 +45,13 @@ func TestExecuteCheckOnly(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		connectionManager := connections.NewFakeConnectionManager([]string{""})
+		connectionManager := connections.NewFakeConnectionManager([]string{"foo"})
 		local := NewMockABCIClient(ctrl)
 		clients := map[string]connections.FakeClient{}
-		clients[""] = connections.FakeClient{local, nil}
+		clients["foo"] = connections.FakeClient{local, nil}
 		connectionManager.SetClients(clients)
 		table := new(protocol.RoutingTable)
-		table.Routes = routing.BuildSimpleTable([]string{""})
+		table.Routes = routing.BuildSimpleTable([]string{"foo"})
 		router, err := routing.NewStaticRouter(table, connectionManager, nil)
 		require.NoError(t, err)
 		j, err := NewJrpc(Options{
@@ -73,13 +73,13 @@ func TestExecuteCheckOnly(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		connectionManager := connections.NewFakeConnectionManager([]string{""})
+		connectionManager := connections.NewFakeConnectionManager([]string{"foo"})
 		local := NewMockABCIClient(ctrl)
 		clients := map[string]connections.FakeClient{}
-		clients[""] = connections.FakeClient{local, nil}
+		clients["foo"] = connections.FakeClient{local, nil}
 		connectionManager.SetClients(clients)
 		table := new(protocol.RoutingTable)
-		table.Routes = routing.BuildSimpleTable([]string{""})
+		table.Routes = routing.BuildSimpleTable([]string{"foo"})
 		router, err := routing.NewStaticRouter(table, connectionManager, nil)
 		require.NoError(t, err)
 		j, err := NewJrpc(Options{

@@ -17977,7 +17977,9 @@ func (v *DataAccount) UnmarshalJSON(data []byte) error {
 	}
 	v.Url = u.Url
 	v.AccountAuth.Authorities = u.Authorities
-	v.Entry = u.Entry.Value
+	if u.Entry != nil {
+		v.Entry = u.Entry.Value
+	}
 
 	return nil
 }
@@ -17997,7 +17999,9 @@ func (v *DelegatedSignature) UnmarshalJSON(data []byte) error {
 	if !(v.Type() == u.Type) {
 		return fmt.Errorf("field Type: not equal: want %v, got %v", v.Type(), u.Type)
 	}
-	v.Signature = u.Signature.Value
+	if u.Signature != nil {
+		v.Signature = u.Signature.Value
+	}
 
 	v.Delegator = u.Delegator
 	return nil
@@ -18647,7 +18651,9 @@ func (v *NetworkAccountUpdate) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	v.Name = u.Name
-	v.Body = u.Body.Value
+	if u.Body != nil {
+		v.Body = u.Body.Value
+	}
 
 	return nil
 }
@@ -18889,7 +18895,9 @@ func (v *RemoteSignature) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("field Type: not equal: want %v, got %v", v.Type(), u.Type)
 	}
 	v.Destination = u.Destination
-	v.Signature = u.Signature.Value
+	if u.Signature != nil {
+		v.Signature = u.Signature.Value
+	}
 
 	v.Cause = make([][32]byte, len(u.Cause))
 	for i, x := range u.Cause {
@@ -19261,7 +19269,9 @@ func (v *SyntheticWriteData) UnmarshalJSON(data []byte) error {
 	v.SyntheticOrigin.Cause = u.Cause
 	v.SyntheticOrigin.Initiator = u.Initiator
 	v.SyntheticOrigin.FeeRefund = u.FeeRefund
-	v.Entry = u.Entry.Value
+	if u.Entry != nil {
+		v.Entry = u.Entry.Value
+	}
 
 	return nil
 }
@@ -19314,7 +19324,9 @@ func (v *SystemLedger) UnmarshalJSON(data []byte) error {
 		v.AcmeBurnt = *x
 	}
 	v.PendingUpdates = u.PendingUpdates
-	v.Anchor = u.Anchor.Value
+	if u.Anchor != nil {
+		v.Anchor = u.Anchor.Value
+	}
 
 	v.ExecutorVersion = u.ExecutorVersion
 	return nil
@@ -19335,7 +19347,9 @@ func (v *SystemWriteData) UnmarshalJSON(data []byte) error {
 	if !(v.Type() == u.Type) {
 		return fmt.Errorf("field Type: not equal: want %v, got %v", v.Type(), u.Type)
 	}
-	v.Entry = u.Entry.Value
+	if u.Entry != nil {
+		v.Entry = u.Entry.Value
+	}
 
 	v.WriteToState = u.WriteToState
 	return nil
@@ -19444,7 +19458,9 @@ func (v *Transaction) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	v.Header = u.Header
-	v.Body = u.Body.Value
+	if u.Body != nil {
+		v.Body = u.Body.Value
+	}
 
 	return nil
 }
@@ -19538,7 +19554,9 @@ func (v *TransactionStatus) UnmarshalJSON(data []byte) error {
 	v.TxID = u.TxID
 	v.Code = u.Code
 	v.Error = u.Error
-	v.Result = u.Result.Value
+	if u.Result != nil {
+		v.Result = u.Result.Value
+	}
 
 	v.Received = u.Received
 	v.Initiator = u.Initiator
@@ -19758,7 +19776,9 @@ func (v *WriteData) UnmarshalJSON(data []byte) error {
 	if !(v.Type() == u.Type) {
 		return fmt.Errorf("field Type: not equal: want %v, got %v", v.Type(), u.Type)
 	}
-	v.Entry = u.Entry.Value
+	if u.Entry != nil {
+		v.Entry = u.Entry.Value
+	}
 
 	v.Scratch = u.Scratch
 	v.WriteToState = u.WriteToState
@@ -19812,7 +19832,9 @@ func (v *WriteDataTo) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("field Type: not equal: want %v, got %v", v.Type(), u.Type)
 	}
 	v.Recipient = u.Recipient
-	v.Entry = u.Entry.Value
+	if u.Entry != nil {
+		v.Entry = u.Entry.Value
+	}
 
 	return nil
 }

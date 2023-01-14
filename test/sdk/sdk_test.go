@@ -61,7 +61,6 @@ func TestSDK(t *testing.T) {
 							// Marshal the envelope
 							json, err := json.Marshal(env)
 							require.NoError(t, err)
-							fmt.Println(string(json))
 
 							// Compare the result to the TC
 							require.Equal(t, tokenize(t, tc.JSON), tokenize(t, json))
