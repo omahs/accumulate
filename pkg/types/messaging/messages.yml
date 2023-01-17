@@ -27,6 +27,10 @@ UserTransaction:
       marshal-as: reference
       pointer: true
 
+# Currently UserSignature is used for *all* signatures, so it's really just a
+# Signature message. However in the future system signatures should move to or
+# be replaced by system messages, so we might eventually update UserSignature to
+# only support key signatures.
 UserSignature:
   union: { type: message }
   fields:
@@ -37,15 +41,16 @@ UserSignature:
     - name: TransactionHash
       type: hash
 
-# SyntheticTransaction:
+# SyntheticTransactions:
 #   union: { type: message }
 #   fields:
-#     - name: Transaction
+#     - name: Transactions
 #       type: protocol.Transaction
 #       marshal-as: reference
 #       pointer: true
+#       repeatable: true
 #     - name: Proof
-#       type: protocol.AnnotatedReceipt
+#       type: protocol.AnnotatedListReceipt
 #       marshal-as: reference
 #       pointer: true
 
