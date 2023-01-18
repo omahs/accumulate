@@ -50,6 +50,8 @@ type Simulator struct {
 	netcfg     *config.Network
 
 	blockErrGroup *errgroup.Group
+
+	StepSynchronous bool
 }
 
 type OpenDatabaseFunc func(partition string, node int, logger log.Logger) database.Beginner
@@ -109,6 +111,15 @@ func New(logger log.Logger, database OpenDatabaseFunc, network *accumulated.Netw
 			return nil, errors.UnknownError.WithFormat("init %s: %w", p.ID, err)
 		}
 	}
+
+	// Execute an extra block in case the executor is booting up with V2. This
+	// will ensure that the active executor implementation is swapped out for V2
+	// before the test submits anything, which makes it easier to debug tests.
+	err = s.Step()
+	if err != nil {
+		return nil, errors.UnknownError.Wrap(err)
+	}
+
 	return s, nil
 }
 
@@ -189,7 +200,7 @@ func SnapshotMap(snapshots map[string]ioutil2.SectionReader) SnapshotFunc {
 func Genesis(time time.Time) SnapshotFunc {
 	// By default run tests with the new executor version
 	values := new(core.GlobalValues)
-	values.ExecutorVersion = protocol.ExecutorVersionV1SignatureAnchoring
+	values.ExecutorVersion = protocol.ExecutorVersionLatest
 	return GenesisWith(time, values)
 }
 
@@ -224,10 +235,22 @@ func (s *Simulator) EventBus() *events.Bus  { return s.partitions[protocol.Direc
 // Step executes a single simulator step
 func (s *Simulator) Step() error {
 	s.blockErrGroup = new(errgroup.Group)
-	for _, p := range s.partitions {
-		p := p // Don't capture loop variables
-		s.blockErrGroup.Go(p.execute)
+
+	if s.StepSynchronous {
+		err := s.partitions[protocol.Directory].execute()
+		for _, bvn := range s.init.Bvns {
+			if e := s.partitions[bvn.Id].execute(); e != nil {
+				err = e
+			}
+		}
+		return err
+	} else {
+		for _, p := range s.partitions {
+			p := p // Don't capture loop variables
+			s.blockErrGroup.Go(p.execute)
+		}
 	}
+
 	return s.blockErrGroup.Wait()
 }
 

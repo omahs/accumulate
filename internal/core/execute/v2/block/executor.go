@@ -203,46 +203,6 @@ func (x *Executor) SetExecutor_TESTONLY(y chain.TransactionExecutor) {
 	x.executors[y.Type()] = y
 }
 
-func (m *Executor) Genesis(block *Block, exec chain.TransactionExecutor) error {
-	var err error
-
-	if !m.isGenesis {
-		panic("Cannot call Genesis on a node txn executor")
-	}
-	m.executors[protocol.TransactionTypeSystemGenesis] = exec
-
-	txn := new(protocol.Transaction)
-	txn.Header.Principal = protocol.AcmeUrl()
-	txn.Body = new(protocol.SystemGenesis)
-	delivery := new(chain.Delivery)
-	delivery.Transaction = txn
-
-	st := chain.NewStateManager(&m.Describe, nil, block.Batch.Begin(true), nil, txn, m.logger.With("operation", "Genesis"))
-	defer st.Discard()
-
-	err = block.Batch.Transaction(txn.GetHash()).PutStatus(&protocol.TransactionStatus{
-		Initiator: txn.Header.Principal,
-	})
-	if err != nil {
-		return errors.UnknownError.Wrap(err)
-	}
-
-	status, err := m.ExecuteEnvelope(block, delivery)
-	if err != nil {
-		return errors.UnknownError.Wrap(err)
-	}
-	if status.Error != nil {
-		return errors.UnknownError.Wrap(status.Error)
-	}
-
-	err = m.EndBlock(block)
-	if err != nil {
-		return errors.UnknownError.Wrap(err)
-	}
-
-	return nil
-}
-
 func (m *Executor) LoadStateRoot(batch *database.Batch) ([]byte, error) {
 	_, err := batch.Account(m.Describe.NodeUrl()).GetState()
 	switch {

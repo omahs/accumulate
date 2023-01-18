@@ -48,6 +48,10 @@ import (
 var validateNetwork = flag.String("test.validate.network", "", "Validate a network")
 var fullValidate = flag.Bool("test.validate.full", false, "Enable TestValidateFull")
 
+func init() {
+	acctesting.EnableDebugFeatures()
+}
+
 // TestManualValidate is intended to be used to manually validate a deployed
 // network.
 func TestManualValidate(t *testing.T) {

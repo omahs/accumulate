@@ -447,7 +447,7 @@ func (x *Executor) recordTransaction(batch *database.Batch, delivery *chain.Deli
 
 	nextHash, ok := partLedger.Get(delivery.SequenceNumber + 1)
 	if ok {
-		state.ProcessAdditionalTransaction(delivery.NewSyntheticFromSequence(nextHash.Hash()))
+		state.ProcessSynthetic(nextHash)
 	}
 
 	return status, nil
