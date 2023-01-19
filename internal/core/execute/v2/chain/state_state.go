@@ -63,7 +63,16 @@ func (s *ProcessTransactionState) ProcessForwarded(msg messaging.Message) {
 // ProcessNetworkUpdate queues a [internal.SyntheticMessage] for processing
 // after the current bundle.
 func (s *ProcessTransactionState) ProcessSynthetic(txid *url.TxID) {
-	s.AdditionalMessages = append(s.AdditionalMessages, &internal.SyntheticMessage{TxID: txid})
+	s.AdditionalMessages = append(s.AdditionalMessages, &messaging.SyntheticTransaction{
+		Transaction: &protocol.Transaction{
+			Header: protocol.TransactionHeader{
+				Principal: txid.Account(),
+			},
+			Body: &protocol.RemoteTransaction{
+				Hash: txid.Hash(),
+			},
+		},
+	})
 }
 
 func (s *ProcessTransactionState) Merge(r *ProcessTransactionState) {
