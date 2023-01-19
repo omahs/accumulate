@@ -25,7 +25,7 @@ type NetworkUpdate struct{}
 
 func (NetworkUpdate) Type() messaging.MessageType { return internal.MessageTypeNetworkUpdate }
 
-func (NetworkUpdate) Process(b *bundle, msg messaging.Message) (*protocol.TransactionStatus, error) {
+func (NetworkUpdate) Process(b *bundle, batch *database.Batch, msg messaging.Message) (*protocol.TransactionStatus, error) {
 	update, ok := msg.(*internal.NetworkUpdate)
 	if !ok {
 		return nil, errors.InternalError.WithFormat("invalid message type: expected %v, got %v", internal.MessageTypeNetworkUpdate, msg.Type())
@@ -42,7 +42,7 @@ func (NetworkUpdate) Process(b *bundle, msg messaging.Message) (*protocol.Transa
 	b.internal.Add(txn.ID().Hash())
 	b.internal.Add(*(*[32]byte)(sig.Hash()))
 
-	batch := b.Block.Batch.Begin(true)
+	batch = batch.Begin(true)
 	defer batch.Discard()
 
 	// Store the transaction
@@ -52,7 +52,7 @@ func (NetworkUpdate) Process(b *bundle, msg messaging.Message) (*protocol.Transa
 	}
 
 	// Process the signature
-	st, err := b.callMessageExecutor(&messaging.UserSignature{
+	st, err := b.callMessageExecutor(batch, &messaging.UserSignature{
 		Signature:       sig,
 		TransactionHash: txn.ID().Hash(),
 	})

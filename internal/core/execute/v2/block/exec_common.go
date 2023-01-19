@@ -7,6 +7,7 @@
 package block
 
 import (
+	"gitlab.com/accumulatenetwork/accumulate/internal/database"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/errors"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
 	"gitlab.com/accumulatenetwork/accumulate/protocol"
@@ -14,7 +15,7 @@ import (
 
 type ExecutorFor[T any, V interface{ Type() T }] interface {
 	Type() T
-	Process(*bundle, V) (*protocol.TransactionStatus, error)
+	Process(*bundle, *database.Batch, V) (*protocol.TransactionStatus, error)
 }
 
 type MessageExecutor = ExecutorFor[messaging.MessageType, messaging.Message]

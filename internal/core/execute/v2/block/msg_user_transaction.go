@@ -25,7 +25,7 @@ type UserTransaction struct{}
 
 func (UserTransaction) Type() messaging.MessageType { return messaging.MessageTypeUserTransaction }
 
-func (UserTransaction) Process(b *bundle, msg messaging.Message) (*protocol.TransactionStatus, error) {
+func (UserTransaction) Process(b *bundle, batch *database.Batch, msg messaging.Message) (*protocol.TransactionStatus, error) {
 	txn, ok := msg.(*messaging.UserTransaction)
 	if !ok {
 		return nil, errors.InternalError.WithFormat("invalid message type: expected %v, got %v", messaging.MessageTypeUserTransaction, msg.Type())
@@ -47,7 +47,7 @@ func (UserTransaction) Process(b *bundle, msg messaging.Message) (*protocol.Tran
 		return protocol.NewErrorStatus(txn.ID(), errors.BadRequest.WithFormat("%v is not signed", txn.ID())), nil
 	}
 
-	batch := b.Block.Batch.Begin(true)
+	batch = batch.Begin(true)
 	defer batch.Discard()
 
 	isRemote := txn.Transaction.Body.Type() == protocol.TransactionTypeRemote

@@ -24,13 +24,13 @@ type UserSignature struct{}
 
 func (UserSignature) Type() messaging.MessageType { return messaging.MessageTypeUserSignature }
 
-func (UserSignature) Process(b *bundle, msg messaging.Message) (*protocol.TransactionStatus, error) {
+func (UserSignature) Process(b *bundle, batch *database.Batch, msg messaging.Message) (*protocol.TransactionStatus, error) {
 	sig, ok := msg.(*messaging.UserSignature)
 	if !ok {
 		return nil, errors.InternalError.WithFormat("invalid message type: expected %v, got %v", messaging.MessageTypeUserSignature, msg.Type())
 	}
 
-	batch := b.Block.Batch.Begin(true)
+	batch = batch.Begin(true)
 	defer batch.Discard()
 
 	// Load the transaction

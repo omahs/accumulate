@@ -11,6 +11,7 @@ import (
 
 	"gitlab.com/accumulatenetwork/accumulate/internal/core/execute/v2/chain"
 	"gitlab.com/accumulatenetwork/accumulate/internal/core/execute/v2/internal"
+	"gitlab.com/accumulatenetwork/accumulate/internal/database"
 	"gitlab.com/accumulatenetwork/accumulate/internal/logging"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/errors"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
@@ -106,7 +107,7 @@ additional:
 	// Process each message
 	remote := set[[32]byte]{}
 	for _, msg := range messages {
-		st, err := d.callMessageExecutor(msg)
+		st, err := d.callMessageExecutor(b.Block.Batch, msg)
 		if err != nil {
 			return nil, errors.UnknownError.Wrap(err)
 		}
@@ -219,7 +220,7 @@ func (b *BlockV2) checkForUnsignedTransactions(messages []messaging.Message) err
 	return nil
 }
 
-func (b *bundle) callMessageExecutor(msg messaging.Message) (*protocol.TransactionStatus, error) {
+func (b *bundle) callMessageExecutor(batch *database.Batch, msg messaging.Message) (*protocol.TransactionStatus, error) {
 	// Internal messages are not allowed on the first pass. This is probably
 	// unnecessary since internal messages cannot be marshalled, but better safe
 	// than sorry.
@@ -238,7 +239,7 @@ func (b *bundle) callMessageExecutor(msg messaging.Message) (*protocol.Transacti
 	}
 
 	// Process the message
-	st, err := x.Process(b, msg)
+	st, err := x.Process(b, batch, msg)
 	err = errors.UnknownError.Wrap(err)
 	return st, err
 }

@@ -8,6 +8,7 @@ package block
 
 import (
 	"gitlab.com/accumulatenetwork/accumulate/internal/core/execute/v2/internal"
+	"gitlab.com/accumulatenetwork/accumulate/internal/database"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/errors"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
 	"gitlab.com/accumulatenetwork/accumulate/protocol"
@@ -22,7 +23,7 @@ type SyntheticMessage struct{}
 
 func (SyntheticMessage) Type() messaging.MessageType { return internal.MessageTypeSyntheticMessage }
 
-func (SyntheticMessage) Process(b *bundle, msg messaging.Message) (*protocol.TransactionStatus, error) {
+func (SyntheticMessage) Process(b *bundle, batch *database.Batch, msg messaging.Message) (*protocol.TransactionStatus, error) {
 	synth, ok := msg.(*internal.SyntheticMessage)
 	if !ok {
 		return nil, errors.InternalError.WithFormat("invalid message type: expected %v, got %v", internal.MessageTypeSyntheticMessage, msg.Type())
