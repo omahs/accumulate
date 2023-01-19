@@ -11,7 +11,6 @@ import (
 
 	"gitlab.com/accumulatenetwork/accumulate/internal/core/execute/v2/chain"
 	"gitlab.com/accumulatenetwork/accumulate/internal/core/execute/v2/internal"
-	"gitlab.com/accumulatenetwork/accumulate/internal/database"
 	"gitlab.com/accumulatenetwork/accumulate/internal/logging"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/errors"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
@@ -242,58 +241,6 @@ func (b *bundle) callMessageExecutor(msg messaging.Message) (*protocol.Transacti
 	st, err := x.Process(b, msg)
 	err = errors.UnknownError.Wrap(err)
 	return st, err
-}
-
-// executeSignature executes the signature, queuing the transaction for
-// processing when appropriate.
-func (b *bundle) executeSignature(batch *database.Batch, signature protocol.Signature, transaction *protocol.Transaction) (*protocol.TransactionStatus, error) {
-	// Process the transaction if it is synthetic or system, or the signature is
-	// internal, or the signature is local to the principal
-	if !transaction.Body.Type().IsUser() ||
-		signature.Type() == protocol.SignatureTypeInternal ||
-		signature.RoutingLocation().LocalTo(transaction.Header.Principal) {
-		b.transactionsToProcess.Add(transaction.ID().Hash())
-	}
-
-	status := new(protocol.TransactionStatus)
-	status.Received = b.Block.Index
-
-	// TODO: add an ID method to signatures
-	sigHash := *(*[32]byte)(signature.Hash())
-	switch signature := signature.(type) {
-	case protocol.KeySignature:
-		status.TxID = signature.GetSigner().WithTxID(sigHash)
-	case *protocol.ReceiptSignature, *protocol.InternalSignature:
-		status.TxID = transaction.Header.Principal.WithTxID(sigHash)
-	default:
-		status.TxID = signature.RoutingLocation().WithTxID(sigHash)
-	}
-
-	s, err := b.Executor.ProcessSignature(batch, &chain.Delivery{
-		Transaction: transaction,
-		Internal:    b.internal.Has(sigHash),
-		Forwarded:   b.forwarded.Has(sigHash),
-	}, signature)
-	b.Block.State.MergeSignature(s)
-	if err == nil {
-		status.Code = errors.Delivered
-	} else {
-		status.Set(err)
-	}
-
-	// Always record the signature and status
-	if sig, ok := signature.(*protocol.RemoteSignature); ok {
-		signature = sig.Signature
-	}
-	err = batch.Transaction(signature.Hash()).Main().Put(&database.SigOrTxn{Signature: signature, Txid: transaction.ID()})
-	if err != nil {
-		return nil, errors.UnknownError.WithFormat("store signature: %w", err)
-	}
-	err = batch.Transaction(signature.Hash()).Status().Put(status)
-	if err != nil {
-		return nil, errors.UnknownError.WithFormat("store signature status: %w", err)
-	}
-	return status, nil
 }
 
 // executeTransaction executes a transaction.

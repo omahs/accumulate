@@ -7,6 +7,8 @@
 package block
 
 import (
+	"gitlab.com/accumulatenetwork/accumulate/internal/core/execute/v2/chain"
+	"gitlab.com/accumulatenetwork/accumulate/internal/database"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/errors"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
 	"gitlab.com/accumulatenetwork/accumulate/protocol"
@@ -16,7 +18,8 @@ func init() {
 	messageExecutors = append(messageExecutors, func(ExecutorOptions) MessageExecutor { return UserSignature{} })
 }
 
-// UserSignature processes a signature. See [bundle.executeSignature].
+// UserSignature executes the signature, queuing the transaction for processing
+// when appropriate.
 type UserSignature struct{}
 
 func (UserSignature) Type() messaging.MessageType { return messaging.MessageTypeUserSignature }
@@ -39,9 +42,41 @@ func (UserSignature) Process(b *bundle, msg messaging.Message) (*protocol.Transa
 		return protocol.NewErrorStatus(sig.ID(), errors.BadRequest.WithFormat("%x is not a transaction", sig.TransactionHash)), nil
 	}
 
-	status, err := b.executeSignature(batch, sig.Signature, txn.Transaction)
+	signature, transaction := sig.Signature, txn.Transaction // Process the transaction if it is synthetic or system, or the signature is
+	// internal, or the signature is local to the principal
+	if !transaction.Body.Type().IsUser() ||
+		signature.Type() == protocol.SignatureTypeInternal ||
+		signature.RoutingLocation().LocalTo(transaction.Header.Principal) {
+		b.transactionsToProcess.Add(transaction.ID().Hash())
+	}
+
+	status := new(protocol.TransactionStatus)
+	status.TxID = sig.ID()
+	status.Received = b.Block.Index
+
+	s, err := b.Executor.ProcessSignature(batch, &chain.Delivery{
+		Transaction: transaction,
+		Internal:    b.internal.Has(sig.ID().Hash()),
+		Forwarded:   b.forwarded.Has(sig.ID().Hash()),
+	}, signature)
+	b.Block.State.MergeSignature(s)
+	if err == nil {
+		status.Code = errors.Delivered
+	} else {
+		status.Set(err)
+	}
+
+	// Always record the signature and status
+	if sig, ok := signature.(*protocol.RemoteSignature); ok {
+		signature = sig.Signature
+	}
+	err = batch.Transaction(signature.Hash()).Main().Put(&database.SigOrTxn{Signature: signature, Txid: transaction.ID()})
 	if err != nil {
-		return nil, errors.UnknownError.Wrap(err)
+		return nil, errors.UnknownError.WithFormat("store signature: %w", err)
+	}
+	err = batch.Transaction(signature.Hash()).Status().Put(status)
+	if err != nil {
+		return nil, errors.UnknownError.WithFormat("store signature status: %w", err)
 	}
 
 	err = batch.Commit()
