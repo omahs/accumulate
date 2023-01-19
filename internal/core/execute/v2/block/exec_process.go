@@ -22,6 +22,9 @@ import (
 type bundle struct {
 	*BlockV2
 
+	// pass indicates that the bundle's Nth pass is currently being processed.
+	pass int
+
 	// messages is the bundle of messages.
 	messages []messaging.Message
 
@@ -58,7 +61,7 @@ func (b *BlockV2) Process(messages []messaging.Message) ([]*protocol.Transaction
 
 	// Do not check for unsigned transactions when processing additional
 	// messages
-	additional := false
+	var pass int
 additional:
 
 	// Do this now for the sake of comparing logs
@@ -85,7 +88,7 @@ additional:
 			fn = b.Executor.logger.Info
 			kv = append(kv, "module", "anchoring")
 		}
-		if additional {
+		if pass > 0 {
 			fn("Executing additional", kv...)
 		} else {
 			fn("Executing transaction", kv...)
@@ -94,6 +97,7 @@ additional:
 
 	d := new(bundle)
 	d.BlockV2 = b
+	d.pass = pass
 	d.messages = messages
 	d.state = orderedMap[[32]byte, *chain.ProcessTransactionState]{cmp: func(u, v [32]byte) int { return bytes.Compare(u[:], v[:]) }}
 	d.transactionsToProcess = hashSet{}
@@ -103,33 +107,12 @@ additional:
 	// Process each message
 	remote := set[[32]byte]{}
 	for _, msg := range messages {
-		// Unpack forwarded messages and mark them as forwarded
-		if fwd, ok := msg.(*internal.ForwardedMessage); ok {
-			d.forwarded.Add(msg.ID().Hash())
-			msg = fwd.Message
-		}
-
-		var st *protocol.TransactionStatus
-		var err error
-		switch msg := msg.(type) {
-		case *messaging.UserTransaction:
-			remote.Add(msg.ID().Hash())
-			st, err = d.processUserTransactionMessage(msg)
-		case *messaging.UserSignature:
-			st, err = d.processUserSignatureMessage(msg)
-		case *internal.NetworkUpdate:
-			st, err = d.processNetworkUpdateMessage(msg)
-		case *internal.SyntheticMessage:
-			d.transactionsToProcess.Add(msg.TxID.Hash())
-			continue
-		default:
-			st = protocol.NewErrorStatus(msg.ID(), errors.BadRequest.WithFormat("unsupported message type %v", msg.Type()))
-		}
+		st, err := d.callMessageExecutor(msg)
 		if err != nil {
 			return nil, errors.UnknownError.Wrap(err)
 		}
 
-		// Some messages may not produce a status at this stage
+		// Some executors may not produce a status at this stage
 		if st != nil {
 			statuses = append(statuses, st)
 		}
@@ -138,7 +121,7 @@ additional:
 	// Process transactions (MUST BE ORDERED)
 	for _, hash := range d.transactionsToProcess {
 		remote.Remove(hash)
-		st, err := d.executeTransaction(hash, additional)
+		st, err := d.executeTransaction(hash)
 		if err != nil {
 			return nil, errors.UnknownError.Wrap(err)
 		}
@@ -209,7 +192,7 @@ additional:
 	// Process additional transactions. It would be simpler to do this
 	// recursively, but it's possible that could cause a stack overflow.
 	if len(d.additional) > 0 {
-		additional = true
+		pass++
 		messages = d.additional
 		goto additional
 	}
@@ -237,146 +220,28 @@ func (b *BlockV2) checkForUnsignedTransactions(messages []messaging.Message) err
 	return nil
 }
 
-// processUserTransactionMessage records the transaction but does not execute
-// it. Transactions are executed in response to _authority signature_ messages,
-// not user transaction messages.
-func (b *bundle) processUserTransactionMessage(txn *messaging.UserTransaction) (*protocol.TransactionStatus, error) {
-	// Ensure the transaction is signed
-	var signed bool
-	for _, other := range b.messages {
-		if fwd, ok := other.(*internal.ForwardedMessage); ok {
-			other = fwd.Message
+func (b *bundle) callMessageExecutor(msg messaging.Message) (*protocol.TransactionStatus, error) {
+	// Internal messages are not allowed on the first pass. This is probably
+	// unnecessary since internal messages cannot be marshalled, but better safe
+	// than sorry.
+	if b.pass == 0 && msg.Type() >= internal.MessageTypeInternal {
+		return protocol.NewErrorStatus(msg.ID(), errors.BadRequest.WithFormat("unsupported message type %v", msg.Type())), nil
+	}
+
+	// Find the appropriate executor
+	x, ok := b.Executor.messageExecutors[msg.Type()]
+	if !ok {
+		// If the message type is internal, this is almost certainly a bug
+		if msg.Type() >= internal.MessageTypeInternal {
+			return nil, errors.InternalError.WithFormat("no executor registered for message type %v", msg.Type())
 		}
-		sig, ok := other.(*messaging.UserSignature)
-		if ok && sig.TransactionHash == txn.ID().Hash() {
-			signed = true
-			break
-		}
-	}
-	if !signed {
-		return protocol.NewErrorStatus(txn.ID(), errors.BadRequest.WithFormat("%v is not signed", txn.ID())), nil
+		return protocol.NewErrorStatus(msg.ID(), errors.BadRequest.WithFormat("unsupported message type %v", msg.Type())), nil
 	}
 
-	batch := b.Block.Batch.Begin(true)
-	defer batch.Discard()
-
-	isRemote := txn.Transaction.Body.Type() == protocol.TransactionTypeRemote
-	record := batch.Transaction(txn.Transaction.GetHash())
-	s, err := record.Main().Get()
-	switch {
-	case errors.Is(err, errors.NotFound) && !isRemote:
-		// Store the transaction
-
-	case err != nil:
-		// Unknown error or remote transaction with no local copy
-		return nil, errors.UnknownError.WithFormat("load transaction: %w", err)
-
-	case s.Transaction != nil:
-		// It's not a transaction
-		return protocol.NewErrorStatus(txn.ID(), errors.BadRequest.With("not a transaction")), nil
-
-	case isRemote || s.Transaction.Equal(txn.Transaction):
-		// Transaction has already been recorded
-		return nil, nil
-
-	default:
-		// This should be impossible
-		return nil, errors.InternalError.WithFormat("submitted transaction does not match the locally stored transaction")
-	}
-
-	// TODO Can we remove this or do it a better way?
-	if txn.Transaction.Body.Type() == protocol.TransactionTypeSystemWriteData {
-		return protocol.NewErrorStatus(txn.ID(), errors.BadRequest.WithFormat("a %v transaction cannot be submitted directly", protocol.TransactionTypeSystemWriteData)), nil
-	}
-
-	// If we reach this point, Validate should have verified that there is a
-	// signer that can be charged for this recording
-	err = record.Main().Put(&database.SigOrTxn{Transaction: txn.Transaction})
-	if err != nil {
-		return nil, errors.UnknownError.WithFormat("store transaction: %w", err)
-	}
-
-	// Record when the transaction is received
-	status, err := record.Status().Get()
-	if err != nil {
-		return nil, errors.UnknownError.Wrap(err)
-	}
-	if status.Received == 0 {
-		status.Received = b.Block.Index
-		err = record.Status().Put(status)
-		if err != nil {
-			return nil, errors.UnknownError.Wrap(err)
-		}
-	}
-
-	err = batch.Commit()
-	if err != nil {
-		return nil, errors.UnknownError.Wrap(err)
-	}
-
-	// The transaction has not yet been processed so don't add its status
-	return nil, nil
-}
-
-// processUserSignatureMessage processes a signature. See
-// [bundle.executeSignature].
-func (b *bundle) processUserSignatureMessage(sig *messaging.UserSignature) (*protocol.TransactionStatus, error) {
-	batch := b.Block.Batch.Begin(true)
-	defer batch.Discard()
-
-	// Load the transaction
-	txn, err := batch.Transaction(sig.TransactionHash[:]).Main().Get()
-	switch {
-	case err != nil:
-		return nil, errors.UnknownError.WithFormat("load transaction: %w", err)
-	case txn.Transaction == nil:
-		return protocol.NewErrorStatus(sig.ID(), errors.BadRequest.WithFormat("%x is not a transaction", sig.TransactionHash)), nil
-	}
-
-	status, err := b.executeSignature(batch, sig.Signature, txn.Transaction)
-	if err != nil {
-		return nil, errors.UnknownError.Wrap(err)
-	}
-
-	err = batch.Commit()
-	if err != nil {
-		return nil, errors.UnknownError.Wrap(err)
-	}
-	return status, nil
-}
-
-// processNetworkUpdateMessage constructs a transaction and signature for the
-// network update, stores the transaction, and executes the signature (which
-// queues the transaction for processing).
-func (b *bundle) processNetworkUpdateMessage(msg *internal.NetworkUpdate) (*protocol.TransactionStatus, error) {
-	sig := new(protocol.InternalSignature)
-	sig.Cause = msg.Cause
-	txn := new(protocol.Transaction)
-	txn.Header.Principal = msg.Account
-	txn.Header.Initiator = *(*[32]byte)(sig.Metadata().Hash())
-	txn.Body = msg.Body
-	sig.TransactionHash = *(*[32]byte)(txn.GetHash())
-
-	b.internal.Add(txn.ID().Hash())
-	b.internal.Add(*(*[32]byte)(sig.Hash()))
-
-	batch := b.Block.Batch.Begin(true)
-	defer batch.Discard()
-
-	// Store the transaction
-	err := batch.Transaction(sig.TransactionHash[:]).Main().Put(&database.SigOrTxn{Transaction: txn})
-	if err != nil {
-		return nil, errors.UnknownError.WithFormat("store transaction: %w", err)
-	}
-
-	// Process the signature
-	_, err = b.executeSignature(batch, sig, txn)
-	if err != nil {
-		return nil, errors.UnknownError.Wrap(err)
-	}
-
-	// Don't return a status
-	return nil, nil
+	// Process the message
+	st, err := x.Process(b, msg)
+	err = errors.UnknownError.Wrap(err)
+	return st, err
 }
 
 // executeSignature executes the signature, queuing the transaction for
@@ -432,7 +297,7 @@ func (b *bundle) executeSignature(batch *database.Batch, signature protocol.Sign
 }
 
 // executeTransaction executes a transaction.
-func (b *bundle) executeTransaction(hash [32]byte, additional bool) (*protocol.TransactionStatus, error) {
+func (b *bundle) executeTransaction(hash [32]byte) (*protocol.TransactionStatus, error) {
 	batch := b.Block.Batch.Begin(true)
 	defer batch.Discard()
 
@@ -476,13 +341,13 @@ func (b *bundle) executeTransaction(hash [32]byte, additional bool) (*protocol.T
 	}
 	if status.Error != nil {
 		kv = append(kv, "error", status.Error)
-		if additional {
+		if b.pass > 0 {
 			b.Executor.logger.Info("Additional transaction failed", kv...)
 		} else {
 			b.Executor.logger.Info("Transaction failed", kv...)
 		}
 	} else if status.Pending() {
-		if additional {
+		if b.pass > 0 {
 			b.Executor.logger.Debug("Additional transaction pending", kv...)
 		} else {
 			b.Executor.logger.Debug("Transaction pending", kv...)
@@ -495,7 +360,7 @@ func (b *bundle) executeTransaction(hash [32]byte, additional bool) (*protocol.T
 			fn = b.Executor.logger.Info
 			kv = append(kv, "module", "anchoring")
 		}
-		if additional {
+		if b.pass > 0 {
 			fn("Additional transaction succeeded", kv...)
 		} else {
 			fn("Transaction succeeded", kv...)

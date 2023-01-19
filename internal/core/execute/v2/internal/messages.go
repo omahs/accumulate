@@ -19,6 +19,19 @@ import (
 	"gitlab.com/accumulatenetwork/accumulate/protocol"
 )
 
+const (
+	MessageTypeInternal messaging.MessageType = 0xFFFF_0000 + iota
+
+	// MessageTypeNetworkUpdate is an update to a network account that has been pushed from the DN via an anchor.
+	MessageTypeNetworkUpdate
+
+	// MessageTypeForwardedMessage is a message forwarded from another partition.
+	MessageTypeForwardedMessage
+
+	// MessageTypeSyntheticMessage is the ID of a synthetic transaction that should be processed.
+	MessageTypeSyntheticMessage
+)
+
 // NetworkUpdate is an update to a network account that has been pushed from the
 // DN via an anchor.
 type NetworkUpdate struct {
@@ -41,15 +54,15 @@ type SyntheticMessage struct {
 	TxID *url.TxID
 }
 
-func (m *NetworkUpdate) Type() messaging.MessageType { return 0xFFFF_0001 }
+func (m *NetworkUpdate) Type() messaging.MessageType { return MessageTypeNetworkUpdate }
 func (m *NetworkUpdate) ID() *url.TxID               { return m.Account.WithTxID(m.Cause) }
 func (m *NetworkUpdate) CopyAsInterface() any        { return m }
 
-func (m *ForwardedMessage) Type() messaging.MessageType { return 0xFFFF_0002 }
+func (m *ForwardedMessage) Type() messaging.MessageType { return MessageTypeForwardedMessage }
 func (m *ForwardedMessage) ID() *url.TxID               { return m.Message.ID() }
 func (m *ForwardedMessage) CopyAsInterface() any        { return m }
 
-func (m *SyntheticMessage) Type() messaging.MessageType { return 0xFFFF_0003 }
+func (m *SyntheticMessage) Type() messaging.MessageType { return MessageTypeSyntheticMessage }
 func (m *SyntheticMessage) ID() *url.TxID               { return m.TxID }
 func (m *SyntheticMessage) CopyAsInterface() any        { return m }
 

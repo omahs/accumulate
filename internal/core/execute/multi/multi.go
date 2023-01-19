@@ -49,7 +49,7 @@ func NewExecutor(opts Options) (Executor, error) {
 
 	// If the version is V2, create a V2 executor
 	if ledger != nil && ledger.ExecutorVersion.V2() {
-		exec, err := v2.NewNodeExecutor(opts)
+		exec, err := v2.NewExecutor(opts)
 		if err != nil {
 			return nil, errors.UnknownError.WithFormat("create v2 executor: %w", err)
 		}
@@ -103,7 +103,7 @@ func (m *Multi) updateActive() error {
 
 	// TODO Can we move this call into [NewExecutor] to reduce the possibility
 	// of running into an error here?
-	exec, err := v2.NewNodeExecutor(m.opts)
+	exec, err := v2.NewExecutor(m.opts)
 	if err != nil {
 		return errors.UnknownError.WithFormat("create v2 executor: %w", err)
 	}
