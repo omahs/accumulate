@@ -264,6 +264,11 @@ func (b *bundle) executeTransaction(hash [32]byte) (*protocol.TransactionStatus,
 		return nil, errors.UnknownError.Wrap(err)
 	}
 
+	// Do not process the transaction if it has already been delivered
+	if status.Delivered() {
+		return status, nil
+	}
+
 	delivery := &chain.Delivery{Transaction: txn.Transaction, Internal: b.internal.Has(hash)}
 	err = delivery.LoadSyntheticMetadata(batch, txn.Transaction.Body.Type(), status)
 	if err != nil {
