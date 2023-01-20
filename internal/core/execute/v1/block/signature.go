@@ -257,6 +257,7 @@ func (x *Executor) processSignature(batch *database.Batch, delivery *chain.Deliv
 	// Record the initiator (but only if we're at the final destination)
 	shouldRecordInit := md.IsInitiator
 	if x.globals.Active.ExecutorVersion.SignatureAnchoringEnabled() &&
+		!delivery.WasProducedInternally() &&
 		delivery.Transaction.Body.Type().IsUser() {
 		if md.Delegated {
 			shouldRecordInit = false
