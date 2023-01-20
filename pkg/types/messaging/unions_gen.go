@@ -26,6 +26,8 @@ func NewMessage(typ MessageType) (Message, error) {
 		return new(UserSignature), nil
 	case MessageTypeUserTransaction:
 		return new(UserTransaction), nil
+	case MessageTypeValidatorSignature:
+		return new(ValidatorSignature), nil
 	default:
 		return nil, fmt.Errorf("unknown message %v", typ)
 	}
@@ -49,6 +51,9 @@ func EqualMessage(a, b Message) bool {
 	case *UserTransaction:
 		b, ok := b.(*UserTransaction)
 		return ok && a.Equal(b)
+	case *ValidatorSignature:
+		b, ok := b.(*ValidatorSignature)
+		return ok && a.Equal(b)
 	default:
 		return false
 	}
@@ -62,6 +67,8 @@ func CopyMessage(v Message) Message {
 	case *UserSignature:
 		return v.Copy()
 	case *UserTransaction:
+		return v.Copy()
+	case *ValidatorSignature:
 		return v.Copy()
 	default:
 		return v.CopyAsInterface().(Message)
