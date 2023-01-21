@@ -60,18 +60,11 @@ func (s *ProcessTransactionState) ProcessForwarded(msg messaging.Message) {
 	s.AdditionalMessages = append(s.AdditionalMessages, &internal.ForwardedMessage{Message: msg})
 }
 
-// ProcessNetworkUpdate queues a [internal.SyntheticMessage] for processing
-// after the current bundle.
-func (s *ProcessTransactionState) ProcessSynthetic(txid *url.TxID) {
-	s.AdditionalMessages = append(s.AdditionalMessages, &messaging.SyntheticTransaction{
-		Transaction: &protocol.Transaction{
-			Header: protocol.TransactionHeader{
-				Principal: txid.Account(),
-			},
-			Body: &protocol.RemoteTransaction{
-				Hash: txid.Hash(),
-			},
-		},
+// ProcessTransaction queues a transaction for processing after the current
+// bundle.
+func (s *ProcessTransactionState) ProcessTransaction(txid *url.TxID) {
+	s.AdditionalMessages = append(s.AdditionalMessages, &internal.TransactionIsReady{
+		TxID: txid,
 	})
 }
 

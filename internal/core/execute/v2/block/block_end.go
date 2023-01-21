@@ -433,26 +433,38 @@ func (x *Executor) requestMissingTransactionsFromPartition(ctx context.Context, 
 			x.logger.Error("Response to query-synth is missing the signatures", "from", partition.Url, "seq-num", seqNum, "is-anchor", anchor)
 			continue
 		}
-		if resp.Status == nil {
-			x.logger.Error("Response to query-synth is missing the status", "from", partition.Url, "seq-num", seqNum, "is-anchor", anchor)
-			continue
-		}
-		if resp.Status.Proof == nil {
-			x.logger.Error("Response to query-synth is missing the proof", "from", partition.Url, "seq-num", seqNum, "is-anchor", anchor)
-			continue
+		if !anchor {
+			if resp.Status == nil {
+				x.logger.Error("Response to query-synth is missing the status", "from", partition.Url, "seq-num", seqNum, "is-anchor", anchor)
+				continue
+			}
+			if resp.Status.Proof == nil {
+				x.logger.Error("Response to query-synth is missing the proof", "from", partition.Url, "seq-num", seqNum, "is-anchor", anchor)
+				continue
+			}
 		}
 
-		messages := []messaging.Message{
-			&messaging.SyntheticTransaction{
-				Transaction: resp.Transaction,
-				Proof: &protocol.AnnotatedReceipt{
-					Receipt: resp.Status.Proof,
-					Anchor: &protocol.AnchorMetadata{
-						Account: resp.Transaction.Header.Source,
+		var messages []messaging.Message
+		if anchor {
+			messages = []messaging.Message{
+				&messaging.UserTransaction{
+					Transaction: resp.Transaction,
+				},
+			}
+		} else {
+			messages = []messaging.Message{
+				&messaging.SyntheticTransaction{
+					Transaction: resp.Transaction,
+					Proof: &protocol.AnnotatedReceipt{
+						Receipt: resp.Status.Proof,
+						Anchor: &protocol.AnchorMetadata{
+							Account: resp.Transaction.Header.Source,
+						},
 					},
 				},
-			},
+			}
 		}
+
 		var gotKey, bad bool
 		for _, signature := range resp.Signatures.Records {
 			h := signature.TxID.Hash()

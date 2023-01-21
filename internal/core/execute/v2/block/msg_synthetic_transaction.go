@@ -20,9 +20,8 @@ func init() {
 	messageExecutors = append(messageExecutors, func(ExecutorOptions) MessageExecutor { return SyntheticTransaction{} })
 }
 
-// SyntheticTransaction records the transaction but does not execute it. Transactions
-// are executed in response to _authority signature_ messages, not user
-// transaction messages.
+// SyntheticTransaction records the synthetic transaction but does not execute
+// it.
 type SyntheticTransaction struct{}
 
 func (SyntheticTransaction) Type() messaging.MessageType {
