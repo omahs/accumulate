@@ -245,6 +245,19 @@ func (b *bundle) callMessageExecutor(batch *database.Batch, ctx *MessageContext)
 	return st, err
 }
 
+func (b *bundle) callSignatureExecutor(batch *database.Batch, ctx *SignatureContext) (*protocol.TransactionStatus, error) {
+	// Find the appropriate executor
+	x, ok := b.Executor.signatureExecutors[ctx.Type()]
+	if !ok {
+		return protocol.NewErrorStatus(ctx.message.ID(), errors.BadRequest.WithFormat("unsupported signature type %v", ctx.Type())), nil
+	}
+
+	// Process the message
+	st, err := x.Process(batch, ctx)
+	err = errors.UnknownError.Wrap(err)
+	return st, err
+}
+
 // executeTransaction executes a transaction.
 func (b *bundle) executeTransaction(hash [32]byte) (*protocol.TransactionStatus, error) {
 	batch := b.Block.Batch.Begin(true)

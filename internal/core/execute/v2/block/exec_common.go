@@ -14,22 +14,32 @@ import (
 )
 
 type ExecutorFor[T any, V interface{ Type() T }] interface {
-	Type() T
 	Process(*database.Batch, V) (*protocol.TransactionStatus, error)
 }
 
 type MessageExecutor = ExecutorFor[messaging.MessageType, *MessageContext]
+type SignatureExecutor = ExecutorFor[protocol.SignatureType, *SignatureContext]
 
-func newExecutorMap[T comparable, V interface{ Type() T }](opts ExecutorOptions, list []func(ExecutorOptions) ExecutorFor[T, V]) map[T]ExecutorFor[T, V] {
+func newExecutorMap[T comparable, V interface{ Type() T }](opts ExecutorOptions, list []func(ExecutorOptions) (T, ExecutorFor[T, V])) map[T]ExecutorFor[T, V] {
 	m := map[T]ExecutorFor[T, V]{}
 	for _, fn := range list {
-		x := fn(opts)
-		if _, ok := m[x.Type()]; ok {
-			panic(errors.InternalError.WithFormat("duplicate executor for %v", x.Type()))
+		typ, x := fn(opts)
+		if _, ok := m[typ]; ok {
+			panic(errors.InternalError.WithFormat("duplicate executor for %v", typ))
 		}
-		m[x.Type()] = x
+		m[typ] = x
 	}
 	return m
+}
+
+func registerSimpleExec[X ExecutorFor[T, V], T any, V interface{ Type() T }](list *[]func(ExecutorOptions) (T, ExecutorFor[T, V]), typ ...T) {
+	for _, typ := range typ {
+		typ := typ // See docs/developer/rangevarref.md
+		*list = append(*list, func(ExecutorOptions) (T, ExecutorFor[T, V]) {
+			var x X
+			return typ, x
+		})
+	}
 }
 
 // MessageContext is the context in which a message is executed.
@@ -48,3 +58,19 @@ func (m *MessageContext) childWith(msg messaging.Message) *MessageContext {
 	n.parent = m
 	return n
 }
+
+func (m *MessageContext) sigWith(sig protocol.Signature, txn *protocol.Transaction) *SignatureContext {
+	s := new(SignatureContext)
+	s.MessageContext = m
+	s.signature = sig
+	s.transaction = txn
+	return s
+}
+
+type SignatureContext struct {
+	*MessageContext
+	signature   protocol.Signature
+	transaction *protocol.Transaction
+}
+
+func (s *SignatureContext) Type() protocol.SignatureType { return s.signature.Type() }
