@@ -67,25 +67,23 @@ func (SyntheticMessage) Process(batch *database.Batch, ctx *MessageContext) (*pr
 		return nil, errors.UnknownError.WithFormat("search for directory anchor %x: %w", syn.Proof.Receipt.Anchor, err)
 	}
 
-	// Load the status
+	// Record when the transaction was first received
 	status, err := batch.Transaction(h[:]).Status().Get()
 	if err != nil {
 		return nil, errors.UnknownError.WithFormat("load status: %w", err)
 	}
-	// Record when the transaction was first received
 	if status.Received == 0 {
 		status.Received = ctx.Block.Index
-	}
-
-	err = batch.Transaction(h[:]).Status().Put(status)
-	if err != nil {
-		return nil, errors.UnknownError.Wrap(err)
+		err = batch.Transaction(h[:]).Status().Put(status)
+		if err != nil {
+			return nil, errors.UnknownError.Wrap(err)
+		}
 	}
 
 	var shouldQueue bool
 	switch syn.Message.Type() {
 	case messaging.MessageTypeUserTransaction:
-		// Allowed
+		// Allowed, queue for execution
 		shouldQueue = true
 
 	default:
