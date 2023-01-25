@@ -77,10 +77,6 @@ func (SyntheticMessage) Process(batch *database.Batch, ctx *MessageContext) (*pr
 		status.Received = ctx.Block.Index
 	}
 
-	// Record the proof (if provided)
-	status.GotDirectoryReceipt = true
-	status.Proof = syn.Proof.Receipt
-
 	err = batch.Transaction(h[:]).Status().Put(status)
 	if err != nil {
 		return nil, errors.UnknownError.Wrap(err)
