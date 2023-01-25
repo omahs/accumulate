@@ -76,10 +76,6 @@ func (SendTokens) Validate(st *StateManager, tx *Delivery) (protocol.Transaction
 		st.Submit(to.Url, deposit)
 	}
 
-	if !st.Pretend {
-		print("")
-	}
-
 	// Is the account locked?
 	lockable, ok := account.(protocol.LockableAccount)
 	if !ok || lockable.GetLockHeight() == 0 {
