@@ -38,10 +38,13 @@ func (UserSignature) Process(b *bundle, batch *database.Batch, msg messaging.Mes
 
 	// Load the transaction
 	var txn messaging.MessageWithTransaction
-	err := batch.Message(sig.TransactionHash).Main().GetAs(&txn)
+	err := batch.Message(sig.TxID.Hash()).Main().GetAs(&txn)
 	if err != nil {
 		return nil, errors.UnknownError.WithFormat("load transaction: %w", err)
 	}
+
+	// Use the full transaction ID (since normalization uses unknown.acme)
+	sig.TxID = txn.ID()
 
 	if !txn.GetTransaction().Body.Type().IsUser() {
 		return nil, errors.BadRequest.WithFormat("cannot sign a %v transaction with a %v message", txn.GetTransaction().Body.Type(), msg.Type())
@@ -73,7 +76,7 @@ func (UserSignature) Process(b *bundle, batch *database.Batch, msg messaging.Mes
 	if sig, ok := signature.(*protocol.RemoteSignature); ok {
 		signature = sig.Signature
 	}
-	err = batch.Message2(signature.Hash()).Main().Put(msg)
+	err = batch.Message2(signature.Hash()).Main().Put(sig)
 	if err != nil {
 		return nil, errors.UnknownError.WithFormat("store signature: %w", err)
 	}

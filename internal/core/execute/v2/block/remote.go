@@ -31,7 +31,7 @@ func (b *bundle) ProcessRemoteSignatures() error {
 
 		// Load the transaction. Earlier checks should guarantee this never fails.
 		var txn messaging.MessageWithTransaction
-		err := batch.Message(sig.TransactionHash).Main().GetAs(&txn)
+		err := batch.Message(sig.TxID.Hash()).Main().GetAs(&txn)
 		if err != nil {
 			return errors.InternalError.WithFormat("load transaction: %w", err)
 		}
@@ -65,10 +65,10 @@ func (b *bundle) ProcessRemoteSignatures() error {
 		txnIndex[fwd.Destination.AccountID32()] = len(transactions)
 		transactions = append(transactions, transaction)
 
-		state, ok := b.state.Get(sig.TransactionHash)
+		state, ok := b.state.Get(sig.TxID.Hash())
 		if !ok {
 			state = new(chain.ProcessTransactionState)
-			b.state.Set(sig.TransactionHash, state)
+			b.state.Set(sig.TxID.Hash(), state)
 		}
 		state.DidProduceTxn(fwd.Destination, transaction)
 	}

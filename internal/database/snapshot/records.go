@@ -10,7 +10,6 @@ import (
 	"gitlab.com/accumulatenetwork/accumulate/internal/database"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/errors"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
-	"gitlab.com/accumulatenetwork/accumulate/protocol"
 )
 
 // TODO: Check for existing records when restoring?
@@ -24,7 +23,7 @@ func CollectSignature(batch *database.Batch, hash [32]byte) (*Signature, error) 
 
 	sig := new(Signature)
 	sig.Signature = msg.GetSignature()
-	sig.Txid = protocol.UnknownUrl().WithTxID(msg.GetTransactionHash())
+	sig.Txid = msg.GetTxID()
 	return sig, nil
 }
 
@@ -32,8 +31,8 @@ func (s *Signature) Restore(header *Header, batch *database.Batch) error {
 	var err error
 	if header.ExecutorVersion.V2() {
 		err = batch.Message2(s.Signature.Hash()).Main().Put(&messaging.UserSignature{
-			Signature:       s.Signature,
-			TransactionHash: s.Txid.Hash(),
+			Signature: s.Signature,
+			TxID:      s.Txid,
 		})
 	} else {
 		err = batch.Transaction(s.Signature.Hash()).Main().Put(&database.SigOrTxn{

@@ -207,8 +207,8 @@ func (x *Executor) processSignature(batch *database.Batch, delivery *chain.Deliv
 	// Persist the signature
 	sigHash := signature.Hash()
 	err = batch.Message2(sigHash).Main().Put(&messaging.UserSignature{
-		Signature:       sigToStore,
-		TransactionHash: delivery.Transaction.ID().Hash(),
+		Signature: sigToStore,
+		TxID:      delivery.Transaction.ID(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("store envelope: %w", err)

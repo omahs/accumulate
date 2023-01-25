@@ -61,8 +61,8 @@ func (m *messageMain) Get() (messaging.Message, error) {
 	case s.Signature != nil:
 		// It's a signature so return a UserSignature
 		return &messaging.UserSignature{
-			Signature:       s.Signature,
-			TransactionHash: s.Txid.Hash(),
+			Signature: s.Signature,
+			TxID:      s.Txid,
 		}, nil
 
 	default:

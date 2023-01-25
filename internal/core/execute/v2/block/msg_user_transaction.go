@@ -50,7 +50,7 @@ func (UserTransaction) Process(b *bundle, batch *database.Batch, msg messaging.M
 		}
 		switch sig := other.(type) {
 		case *messaging.UserSignature:
-			if sig.TransactionHash == txn.ID().Hash() {
+			if sig.TxID.Hash() == txn.ID().Hash() {
 				signed = true
 				break
 			}

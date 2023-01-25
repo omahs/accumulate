@@ -26,7 +26,7 @@ func loadTransactionOrSignature(batch *database.Batch, txid *url.TxID) (api.Reco
 	case messaging.MessageWithTransaction:
 		return loadTransaction(batch, msg.GetTransaction())
 	case messaging.MessageWithSignature:
-		return loadSignature(batch, msg.GetSignature(), protocol.UnknownUrl().WithTxID(msg.GetTransactionHash()))
+		return loadSignature(batch, msg.GetSignature(), msg.GetTxID())
 	default:
 		return nil, errors.InternalError.WithFormat("unsupported message type %v", msg.Type())
 	}

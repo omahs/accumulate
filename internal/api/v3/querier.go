@@ -252,7 +252,7 @@ func (s *Querier) querySignature(ctx context.Context, batch *database.Batch, msg
 		return nil, errors.UnknownError.WithFormat("load state: %w", err)
 	}
 
-	return loadSignature(batch, msg.GetSignature(), protocol.UnknownUrl().WithTxID(msg.GetTransactionHash()))
+	return loadSignature(batch, msg.GetSignature(), msg.GetTxID())
 }
 
 func (s *Querier) queryChains(ctx context.Context, record *database.Account) (*api.RecordRange[*api.ChainRecord], error) {

@@ -210,7 +210,7 @@ func (b *BlockV2) checkForUnsignedTransactions(messages []messaging.Message) err
 	for _, msg := range messages {
 		switch msg := msg.(type) {
 		case *messaging.UserSignature:
-			delete(unsigned, msg.TransactionHash)
+			delete(unsigned, msg.TxID.Hash())
 		case *messaging.ValidatorSignature:
 			delete(unsigned, msg.Signature.GetTransactionHash())
 		}

@@ -61,10 +61,13 @@ func (m *SyntheticTransaction) GetTransaction() *protocol.Transaction { return m
 type MessageWithSignature interface {
 	Message
 	GetSignature() protocol.Signature
-	GetTransactionHash() [32]byte
+	GetTxID() *url.TxID
 }
 
 func (m *UserSignature) GetSignature() protocol.Signature      { return m.Signature }
 func (m *ValidatorSignature) GetSignature() protocol.Signature { return m.Signature }
-func (m *UserSignature) GetTransactionHash() [32]byte          { return m.TransactionHash }
-func (m *ValidatorSignature) GetTransactionHash() [32]byte     { return m.Signature.GetTransactionHash() }
+func (m *UserSignature) GetTxID() *url.TxID                    { return m.TxID }
+
+func (m *ValidatorSignature) GetTxID() *url.TxID {
+	return protocol.UnknownUrl().WithTxID(m.Signature.GetTransactionHash())
+}

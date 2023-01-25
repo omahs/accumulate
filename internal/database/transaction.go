@@ -48,7 +48,7 @@ func (t *Transaction) GetState() (*SigOrTxn, error) {
 		case messaging.MessageWithSignature:
 			return &SigOrTxn{
 				Signature: msg.GetSignature(),
-				Txid:      protocol.UnknownUrl().WithTxID(msg.GetTransactionHash()),
+				Txid:      msg.GetTxID(),
 			}, nil
 		}
 	}
