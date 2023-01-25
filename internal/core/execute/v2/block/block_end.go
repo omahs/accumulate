@@ -21,7 +21,6 @@ import (
 	"gitlab.com/accumulatenetwork/accumulate/internal/database/indexing"
 	"gitlab.com/accumulatenetwork/accumulate/internal/logging"
 	"gitlab.com/accumulatenetwork/accumulate/internal/node/config"
-	"gitlab.com/accumulatenetwork/accumulate/pkg/api/v3"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/errors"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/url"
@@ -67,15 +66,6 @@ func (m *Executor) EndBlock(block *Block) error {
 		return nil
 	}
 
-	// Load the ledger
-	ledgerUrl := m.Describe.NodeUrl(protocol.Ledger)
-	ledger := block.Batch.Account(ledgerUrl)
-	var ledgerState *protocol.SystemLedger
-	err = ledger.GetStateAs(&ledgerState)
-	if err != nil {
-		return errors.UnknownError.WithFormat("load system ledger: %w", err)
-	}
-
 	m.logger.Debug("Committing",
 		"module", "block",
 		"height", block.Index,
@@ -86,6 +76,8 @@ func (m *Executor) EndBlock(block *Block) error {
 	t := time.Now()
 
 	// Load the main chain of the minor root
+	ledgerUrl := m.Describe.NodeUrl(protocol.Ledger)
+	ledger := block.Batch.Account(ledgerUrl)
 	rootChain, err := ledger.RootChain().Get()
 	if err != nil {
 		return errors.UnknownError.WithFormat("load root chain: %w", err)
@@ -205,12 +197,6 @@ func (m *Executor) EndBlock(block *Block) error {
 		if err != nil {
 			return errors.UnknownError.Wrap(err)
 		}
-	}
-
-	// Write the updated ledger
-	err = ledger.PutState(ledgerState)
-	if err != nil {
-		return errors.UnknownError.WithFormat("store system ledger: %w", err)
 	}
 
 	// Index the root chain
@@ -360,22 +346,11 @@ func (x *Executor) requestMissingSyntheticTransactions(blockIndex uint64, synthL
 	defer cancel()
 
 	// For each partition
-	var pending []*url.TxID
 	for _, partition := range synthLedger.Sequence {
-		pending = append(pending, x.requestMissingTransactionsFromPartition(ctx, wg, dispatcher, partition, false)...)
+		x.requestMissingTransactionsFromPartition(ctx, wg, dispatcher, partition, false)
 	}
 	for _, partition := range anchorLedger.Sequence {
-		pending = append(pending, x.requestMissingTransactionsFromPartition(ctx, wg, dispatcher, partition, true)...)
-	}
-
-	// See if we can get the anchors we need for pending synthetic transactions.
-	// https://accumulate.atlassian.net/browse/AC-1860
-	if x.Describe.NetworkType != config.Directory && len(pending) > 0 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			x.requestMissingAnchors(ctx, batch, dispatcher, blockIndex, pending)
-		}()
+		x.requestMissingTransactionsFromPartition(ctx, wg, dispatcher, partition, true)
 	}
 
 	wg.Wait()
@@ -389,18 +364,16 @@ func (x *Executor) requestMissingSyntheticTransactions(blockIndex uint64, synthL
 	}
 }
 
-func (x *Executor) requestMissingTransactionsFromPartition(ctx context.Context, wg *sync.WaitGroup, dispatcher Dispatcher, partition *protocol.PartitionSyntheticLedger, anchor bool) []*url.TxID {
+func (x *Executor) requestMissingTransactionsFromPartition(ctx context.Context, wg *sync.WaitGroup, dispatcher Dispatcher, partition *protocol.PartitionSyntheticLedger, anchor bool) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// For each pending synthetic transaction
-	var pending []*url.TxID
 	dest := x.Describe.NodeUrl()
 	for i, txid := range partition.Pending {
 		// If we know the ID we must have a local copy (so we don't need to
 		// fetch it)
 		if txid != nil {
-			pending = append(pending, txid)
 			continue
 		}
 
@@ -460,7 +433,7 @@ func (x *Executor) requestMissingTransactionsFromPartition(ctx context.Context, 
 					Proof: &protocol.AnnotatedReceipt{
 						Receipt: resp.Status.Proof,
 						Anchor: &protocol.AnchorMetadata{
-							Account: resp.Transaction.Header.Source,
+							Account: protocol.DnUrl(),
 						},
 					},
 				},
@@ -512,78 +485,6 @@ func (x *Executor) requestMissingTransactionsFromPartition(ctx context.Context, 
 			x.logger.Error("Failed to dispatch synthetic transaction", "error", err, "from", partition.Url)
 			continue
 		}
-	}
-
-	return pending
-}
-
-func (x *Executor) requestMissingAnchors(ctx context.Context, batch *database.Batch, dispatcher Dispatcher, blockIndex uint64, pending []*url.TxID) {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	querier := api.Querier2{Querier: x.Querier}
-
-	anchors := map[[32]byte][]*url.TxID{}
-	source := map[*url.TxID]*url.URL{}
-	var messages []messaging.Message
-	for _, txid := range pending {
-		h := txid.Hash()
-		status, err := batch.Transaction(h[:]).GetStatus()
-		if err != nil {
-			x.logger.Error("Error loading synthetic transaction status", "error", err, "hash", logging.AsHex(txid.Hash()).Slice(0, 4))
-			continue
-		}
-		// Skip if...
-		if status.GotDirectoryReceipt || //       We have a full receipt
-			status.Code == 0 || //                We haven't received the transaction (synthetic transaction from a BVN to itself)
-			status.Proof == nil || //             It doesn't have a proof (because it's an anchor)
-			status.Received+10 < blockIndex || // It was received less than 10 blocks ago
-			false {
-			continue
-		}
-		var msg messaging.MessageWithTransaction
-		err = batch.Message(h).Main().GetAs(&msg)
-		if err != nil {
-			x.logger.Error("Error loading synthetic transaction", "error", err, "hash", logging.AsHex(txid.Hash()).Slice(0, 4))
-			continue
-		}
-
-		a := *(*[32]byte)(status.Proof.Anchor)
-		anchors[a] = append(anchors[a], txid)
-		source[txid] = msg.GetTransaction().Header.Source
-
-		r, err := querier.SearchForAnchor(ctx, protocol.DnUrl().JoinPath(protocol.AnchorPool), &api.AnchorSearchQuery{Anchor: status.Proof.Anchor, IncludeReceipt: true})
-		if err != nil {
-			x.logger.Error("Failed to request anchor", "error", err, "anchor", logging.AsHex(status.Proof.Anchor).Slice(0, 4))
-			continue
-		}
-
-		for _, resp := range r.Records {
-			if resp == nil || resp.Receipt == nil {
-				continue
-			}
-
-			for _, txid := range anchors[*(*[32]byte)(resp.Receipt.Start)] {
-				txn := new(messaging.UserTransaction)
-				txn.Transaction = new(protocol.Transaction)
-				txn.Transaction.Body = &protocol.RemoteTransaction{Hash: txid.Hash()}
-				msg := new(messaging.SyntheticMessage)
-				msg.Message = txn
-				msg.Proof = new(protocol.AnnotatedReceipt)
-				msg.Proof.Receipt = &resp.Receipt.Receipt
-				msg.Proof.Anchor = new(protocol.AnchorMetadata)
-				msg.Proof.Anchor.Account = protocol.DnUrl()
-				messages = append(messages, msg)
-			}
-		}
-	}
-
-	if len(messages) == 0 {
-		return
-	}
-
-	err := dispatcher.Submit(ctx, protocol.PartitionUrl(x.Describe.PartitionId), &messaging.Envelope{Messages: messages})
-	if err != nil {
-		x.logger.Error("Failed to dispatch receipts", "error", err)
 	}
 }
 

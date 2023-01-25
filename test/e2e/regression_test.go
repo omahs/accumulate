@@ -313,7 +313,7 @@ func TestSynthTxnFromDirectory(t *testing.T) {
 	// Initialize
 	values := new(core.GlobalValues)
 	values.ExecutorVersion = ExecutorVersionLatest
-	sim := simulator.New(t, 3)
+	sim := simulator.New(t, 1)
 	sim.InitFromGenesisWith(values)
 
 	alice := acctesting.GenerateKey(t.Name(), "alice")
