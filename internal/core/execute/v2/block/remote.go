@@ -7,6 +7,7 @@
 package block
 
 import (
+	"gitlab.com/accumulatenetwork/accumulate/internal/core/execute/v2/internal"
 	"gitlab.com/accumulatenetwork/accumulate/internal/database"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/errors"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
@@ -23,6 +24,9 @@ func (b *bundle) ProcessRemoteSignatures() error {
 	defer batch.Discard()
 
 	for _, msg := range b.messages {
+		if fwd, ok := msg.(*internal.ForwardedMessage); ok {
+			msg = fwd.Message
+		}
 		sig, ok := msg.(*messaging.UserSignature)
 		if !ok {
 			continue
