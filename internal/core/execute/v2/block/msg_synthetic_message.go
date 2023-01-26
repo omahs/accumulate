@@ -78,6 +78,9 @@ func (SyntheticMessage) Process(batch *database.Batch, ctx *MessageContext) (*pr
 
 	var shouldQueue bool
 	switch syn.Message.Type() {
+	case messaging.MessageTypeUserSignature:
+		// Allowed
+
 	case messaging.MessageTypeUserTransaction:
 		// Allowed, queue for execution
 		shouldQueue = true
@@ -86,12 +89,9 @@ func (SyntheticMessage) Process(batch *database.Batch, ctx *MessageContext) (*pr
 		return protocol.NewErrorStatus(syn.ID(), errors.BadRequest.WithFormat("a synthetic message cannot carry a %v", syn.Message.Type())), nil
 	}
 
-	st, err := ctx.callMessageExecutor(batch, ctx.childWith(syn.Message))
+	st, err := ctx.callMessageExecutor(batch, syn.Message)
 	if err != nil {
 		return nil, errors.UnknownError.Wrap(err)
-	}
-	if st != nil && st.Failed() {
-		return st, nil
 	}
 
 	err = batch.Commit()
@@ -99,7 +99,7 @@ func (SyntheticMessage) Process(batch *database.Batch, ctx *MessageContext) (*pr
 		return nil, errors.UnknownError.Wrap(err)
 	}
 
-	if shouldQueue {
+	if !st.Failed() && shouldQueue {
 		// Queue for execution
 		ctx.transactionsToProcess.Add(syn.ID().Hash())
 	}

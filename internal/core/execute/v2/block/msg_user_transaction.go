@@ -79,7 +79,7 @@ func (UserTransaction) Process(batch *database.Batch, ctx *MessageContext) (*pro
 
 	// If the parent message is synthetic, only allow synthetic transactions.
 	// Otherwise, do not allow synthetic transactions.
-	if ctx.parent != nil && ctx.parent.Type() == messaging.MessageTypeSynthetic {
+	if ctx.parentIsSynthetic() {
 		if !loaded.Body.Type().IsSynthetic() {
 			return protocol.NewErrorStatus(txn.ID(), errors.BadRequest.WithFormat("a synthetic message cannot carry a %v", loaded.Body.Type())), nil
 		}

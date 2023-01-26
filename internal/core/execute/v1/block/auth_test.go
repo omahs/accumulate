@@ -41,6 +41,7 @@ func TestTransactionIsReady(tt *testing.T) {
 	signer.Url = authority.Url.JoinPath("signer")
 	signer.Version = 1
 	t.PutAccount(signer)
+	signer.GetSignatureThreshold()
 
 	// Foo's second authority and signer
 	authority2 := new(FakeAuthority)

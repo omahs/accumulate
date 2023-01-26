@@ -56,6 +56,7 @@ func (x *Executor) ProduceSynthetic(batch *database.Batch, produced []*ProducedM
 		swos[h] = append(swos[h], swo)
 	}
 
+	// Calculate refund amounts
 	for hash, from := range txns {
 		err := x.setSyntheticOrigin(batch, from, swos[hash])
 		if err != nil {
@@ -70,11 +71,14 @@ func (x *Executor) ProduceSynthetic(batch *database.Batch, produced []*ProducedM
 		if err != nil {
 			return errors.InternalError.WithFormat("load message: %w", err)
 		}
-		fromTxn, _ := from.(messaging.MessageWithTransaction)
+		fromTxn, ok := from.(messaging.MessageWithTransaction)
+		if !ok {
+			continue
+		}
 
 		sub, ok := p.Message.(messaging.MessageWithTransaction)
 		if !ok {
-			return errors.InternalError.WithFormat("invalid produced message type %v", p.Message.Type())
+			continue
 		}
 
 		tx, err := x.buildSynthTxn(state, batch, sub.GetTransaction().Header.Principal, sub.GetTransaction().Body)
@@ -141,7 +145,7 @@ func (x *Executor) setSyntheticOrigin(batch *database.Batch, from *protocol.Tran
 	return nil
 }
 
-func (m *Executor) buildSynthTxn(state *chain.ChainUpdates, batch *database.Batch, dest *url.URL, body protocol.TransactionBody) (*protocol.Transaction, error) {
+func (m *Executor) buildSynthMessage(state *chain.ChainUpdates, batch *database.Batch, from messaging.Message, to messaging.Message) (*protocol.Transaction, error) {
 	// Generate a synthetic tx and send to the router. Need to track txid to
 	// make sure they get processed.
 

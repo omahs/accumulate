@@ -31,11 +31,11 @@ func (DelegatedSignature) Process(batch *database.Batch, ctx *SignatureContext) 
 	status.TxID = ctx.message.ID()
 	status.Received = ctx.Block.Index
 
-	s, err := ctx.Executor.processSignature2(batch, &chain.Delivery{
+	signer, err := ctx.Executor.processSignature2(batch, &chain.Delivery{
 		Transaction: ctx.transaction,
 		Forwarded:   ctx.forwarded.Has(ctx.message.ID().Hash()),
 	}, ctx.signature)
-	ctx.Block.State.MergeSignature(s)
+	ctx.Block.State.MergeSignature(&ProcessSignatureState{})
 	if err == nil {
 		status.Code = errors.Delivered
 	} else {

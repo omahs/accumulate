@@ -31,7 +31,7 @@ func (ForwardedMessage) Process(batch *database.Batch, ctx *MessageContext) (*pr
 	// Mark the message as having been forwarded
 	ctx.forwarded.Add(msg.ID().Hash())
 
-	st, err := ctx.callMessageExecutor(batch, ctx.childWith(msg))
+	st, err := ctx.callMessageExecutor(batch, msg)
 	err = errors.UnknownError.Wrap(err)
 	return st, err
 }

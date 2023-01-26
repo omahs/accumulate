@@ -32,6 +32,10 @@ func (h *Hasher) AddHash(v *[32]byte) {
 	*h = append(*h, vv[:])
 }
 
+func (h *Hasher) AddHash2(v [32]byte) {
+	*h = append(*h, v[:])
+}
+
 func (h *Hasher) AddInt(v int64) {
 	var b [10]byte
 	n := binary.PutVarint(b[:], v)

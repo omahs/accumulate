@@ -44,6 +44,7 @@ UserSignature:
 
 SyntheticMessage:
   # TODO Update to have multiple transactions with a list receipt
+  # TODO Move source, dest, sequence from txn header to here
   union: { type: message }
   fields:
     - name: Message
@@ -63,14 +64,3 @@ ValidatorSignature:
     - name: Source
       type: url
       pointer: true
-
-# AuthoritySignature:
-#   union: { type: message }
-#   fields:
-#     - name: Signature
-#       type: protocol.Signature
-#       marshal-as: union
-#     - name: Proof
-#       type: protocol.AnnotatedReceipt
-#       marshal-as: reference
-#       pointer: true

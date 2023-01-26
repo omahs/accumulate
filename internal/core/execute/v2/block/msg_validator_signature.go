@@ -83,16 +83,6 @@ func (x ValidatorSignature) Process(batch *database.Batch, ctx *MessageContext) 
 		return nil, errors.UnknownError.Wrap(err)
 	}
 
-	if status.Failed() {
-		return status, nil
-	}
-
-	// Queue for execution
-	ctx.transactionsToProcess.Add(txn.ID().Hash())
-
-	// Update the block state
-	ctx.Block.State.MergeSignature(&ProcessSignatureState{})
-
 	return status, nil
 }
 
@@ -181,6 +171,12 @@ func (x ValidatorSignature) process(ctx *MessageContext, batch *database.Batch, 
 	if err != nil {
 		return errors.UnknownError.WithFormat("store signature: %w", err)
 	}
+
+	// Queue for execution
+	ctx.transactionsToProcess.Add(txn.ID().Hash())
+
+	// Update the block state
+	ctx.Block.State.MergeSignature(&ProcessSignatureState{})
 
 	return nil
 }

@@ -60,6 +60,20 @@
       pointer: true
       emptyIfMissing: true
 
+    - name: Transaction
+      type: entity
+      parameters:
+      - name: Hash
+        type: hash
+      attributes:
+      - name: Vote
+        type: state
+        dataType: hash
+        parameters:
+        - name: Authority
+          type: url
+          pointer: true
+
     # Chains
     - name: MainChain
       type: other
