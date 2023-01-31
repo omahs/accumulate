@@ -8,6 +8,7 @@ package chain
 
 import (
 	"gitlab.com/accumulatenetwork/accumulate/internal/database"
+	"gitlab.com/accumulatenetwork/accumulate/pkg/types/messaging"
 	"gitlab.com/accumulatenetwork/accumulate/pkg/url"
 	"gitlab.com/accumulatenetwork/accumulate/protocol"
 )
@@ -17,6 +18,7 @@ type SignatureValidationMetadata struct {
 	IsInitiator bool
 	Delegated   bool
 	Forwarded   bool
+	Sequence    *messaging.SequencedMessage
 }
 
 func (d SignatureValidationMetadata) SetDelegated() SignatureValidationMetadata {

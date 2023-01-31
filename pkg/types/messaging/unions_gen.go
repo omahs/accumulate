@@ -20,6 +20,8 @@ import (
 // NewMessage creates a new Message for the specified MessageType.
 func NewMessage(typ MessageType) (Message, error) {
 	switch typ {
+	case MessageTypeSequenced:
+		return new(SequencedMessage), nil
 	case MessageTypeSynthetic:
 		return new(SyntheticMessage), nil
 	case MessageTypeUserSignature:
@@ -42,6 +44,9 @@ func EqualMessage(a, b Message) bool {
 		return false
 	}
 	switch a := a.(type) {
+	case *SequencedMessage:
+		b, ok := b.(*SequencedMessage)
+		return ok && a.Equal(b)
 	case *SyntheticMessage:
 		b, ok := b.(*SyntheticMessage)
 		return ok && a.Equal(b)
@@ -62,6 +67,8 @@ func EqualMessage(a, b Message) bool {
 // CopyMessage copies a Message.
 func CopyMessage(v Message) Message {
 	switch v := v.(type) {
+	case *SequencedMessage:
+		return v.Copy()
 	case *SyntheticMessage:
 		return v.Copy()
 	case *UserSignature:
