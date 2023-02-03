@@ -42,7 +42,6 @@ func registerSimpleExec[X ExecutorFor[T, V], T any, V interface{ Type() T }](lis
 	}
 }
 
-
 type SignatureContext struct {
 	*MessageContext
 	signature   protocol.Signature

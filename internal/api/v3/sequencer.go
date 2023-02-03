@@ -192,15 +192,23 @@ func (s *Sequencer) getSynth(batch *database.Batch, globals *core.GlobalValues, 
 		return nil, errors.UnknownError.WithFormat("load synthetic chain entry %d: %w", entry.Source, err)
 	}
 
+	r := new(api.TransactionRecord)
+
+	if globals.ExecutorVersion.V2() {
+		// Load the transaction
+		var seq *messaging.SequencedMessage
+		err = batch.Message2(hash).Main().GetAs(&seq)
+		if err != nil {
+			return nil, errors.UnknownError.WithFormat("load transaction: %w", err)
+		}
+		r.Sequence = seq
+	}
+
 	// Load the transaction
-	var seq *messaging.SequencedMessage
-	err = batch.Message2(hash).Main().GetAs(&seq)
+	var msg messaging.MessageWithTransaction
+	err = batch.Message2(hash).Main().GetAs(&msg)
 	if err != nil {
 		return nil, errors.UnknownError.WithFormat("load transaction: %w", err)
-	}
-	msg, ok := seq.Message.(messaging.MessageWithTransaction)
-	if !ok {
-		return nil, errors.UnknownError.WithFormat("invalid synthetic message: expected %v, got %v", messaging.MessageTypeUserTransaction, seq.Message.Type())
 	}
 
 	hash = msg.GetTransaction().GetHash()
@@ -269,7 +277,6 @@ func (s *Sequencer) getSynth(batch *database.Batch, globals *core.GlobalValues, 
 	}
 	signatures = append(signatures, keySig)
 
-	r := new(api.TransactionRecord)
 	r.Transaction = msg.GetTransaction()
 	r.TxID = msg.GetTransaction().ID()
 	r.Signatures = new(api.RecordRange[*api.SignatureRecord])
@@ -283,7 +290,6 @@ func (s *Sequencer) getSynth(batch *database.Batch, globals *core.GlobalValues, 
 			Signatures:      signatures,
 		}, TxID: msg.GetTransaction().ID(), Signer: signer},
 	}
-	r.Sequence = seq
 	r.Status = status
 	return r, nil
 }
